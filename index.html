@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17202b">
+  <meta name="description" content="Catalogue des artéfacts de Genshin Impact et planificateur de farm.">
+  <title>Genshin Impact — Artéfacts</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <div><p class="eyebrow">GENSHIN IMPACT</p><h1>Bibliothèque d’artéfacts</h1></div>
+    </div>
+    <nav class="tabs" aria-label="Navigation principale">
+      <button class="tab active" data-view="catalogue" aria-current="page">Catalogue</button>
+      <button class="tab" data-view="planif">Planif <span id="wishlistCount" class="count">0</span></button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="catalogueView" class="view">
+      <div class="intro">
+        <div><p class="eyebrow">TON GUIDE DE FARM</p><h2>Trouve ton prochain set</h2><p class="muted">Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de souhaits.</p></div>
+        <div class="stat-card"><span id="setCount">—</span><small>sets chargés</small></div>
+      </div>
+      <div class="toolbar">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Rechercher un set…" autocomplete="off"></label>
+        <label class="filter-label">Rareté
+          <select id="rarityFilter"><option value="all">Toutes</option><option value="5">5★ uniquement</option><option value="4">4★ max.</option></select>
+        </label>
+        <button id="showWishlist" class="button button-quiet">Voir ma liste <span id="wishlistCount2">0</span></button>
+      </div>
+      <p id="status" class="status" role="status">Chargement des artéfacts…</p>
+      <div id="artifactGrid" class="artifact-grid" aria-live="polite"></div>
+      <div id="emptyState" class="empty-state hidden"><span>✧</span><h3>Aucun résultat</h3><p>Essaie un autre nom ou change le filtre.</p></div>
+      <p class="source-note">Les données de jeu et les images sont récupérées depuis une API communautaire. Une connexion Internet est nécessaire pour charger le catalogue.</p>
+    </section>
+
+    <section id="planifView" class="view hidden">
+      <div class="intro">
+        <div><p class="eyebrow">ORGANISATION HEBDOMADAIRE</p><h2>Ma planification</h2><p class="muted">Les domaines d’artéfacts sont accessibles tous les jours : les sets de ta liste apparaissent donc chaque jour.</p></div>
+      </div>
+      <div class="planner-actions"><p id="plannerSummary" class="muted">Aucun artéfact dans ta liste.</p><button id="clearWishlist" class="button button-danger">Tout supprimer</button></div>
+      <div id="planner" class="planner-grid"></div>
+      <div id="plannerEmpty" class="empty-state"><span>♡</span><h3>Ta liste est vide</h3><p>Ajoute des sets depuis le catalogue pour préparer ta semaine.</p><button id="backToCatalog" class="button">Ouvrir le catalogue</button></div>
+    </section>
+  </main>
+
+  <dialog id="detailDialog" class="detail-dialog" aria-labelledby="detailTitle">
+    <button id="closeDialog" class="dialog-close" aria-label="Fermer">×</button>
+    <div id="detailContent"></div>
+  </dialog>
+  <footer><p>Projet fan-made non officiel. Genshin Impact appartient à HoYoverse.</p><p><a href="https://github.com/theBowja/genshin-db" target="_blank" rel="noreferrer">Données communautaires Genshin-DB</a></p></footer>
+</body>
+</html>
