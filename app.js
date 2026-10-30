@@ -174,6 +174,90 @@ function getDomain(item) {
   );
 }
 
+
+
+/* ========================================
+   CARTES DES DOMAINES D'ARTÉFACTS
+   Images de localisation : GameWith
+======================================== */
+const DOMAIN_INFO = [
+  { names: ["Midsummer Courtyard", "Courtyard of Parting"], region: "Mondstadt", area: "Falaises Starsnatch", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Peak of Vindagnyr"], region: "Mondstadt", area: "Dosdragon", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Ridge Watch"], region: "Liyue", area: "Porte de Pierre", image: "https://img.gamewith.net/img/b3698d197329c2e55c1aa535b0c4beae.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Valley of Remembrance"], region: "Mondstadt", area: "Vignoble de l'Aube", image: "https://img.gamewith.net/img/5a64fca546783317536a96e0b73592b4.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Clear Pool and Mountain Cavern"], region: "Liyue", area: "Mont Aocang", image: "https://img.gamewith.net/img/b29ea616d9f890c1f028f08f74e4cd23.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Domain of Guyun"], region: "Liyue", area: "Forêt de pierres de Guyun", image: "https://img.gamewith.net/img/3666c676326833c032671321faf8a752.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Hidden Palace of Zhou Formula"], region: "Liyue", area: "Colline Wuwang", image: "https://img.gamewith.net/img/59bf860f7b9a4c5dfa6d819a4ba129be.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["The Lost Valley"], region: "Liyue", area: "Gouffre", image: "https://img.gamewith.net/img/7540f04434c4450b68356f25fc608648.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Momiji-Dyed Court"], region: "Inazuma", area: "Île Yashiori", image: "https://img.gamewith.net/img/27e857661fe27f7bbdf1f88bea05d6b4.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Slumbering Court"], region: "Inazuma", area: "Île Seirai", image: "https://img.gamewith.net/img/d2748b8bce3ac6da0fddf96d04cd4e47.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["City of Gold"], region: "Sumeru", area: "Désert de Sumeru", image: "https://img.gamewith.net/img/c5f8e060022fdc30050ec109b9c2acfd.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Molten Iron Fortress"], region: "Sumeru", area: "Gavireh Lajavard", image: "https://img.gamewith.net/img/f8b13e7c4a871a2bbbb6ab70ce6bb24f.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Spire of Solitary Enlightenment"], region: "Sumeru", area: "Colline Gandha", image: "https://img.gamewith.net/img/2c79ddbb90b6a2ae9fc1d7628f8fde03.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Denouement of Sin"], region: "Fontaine", area: "Région de Beryl", image: "https://img.gamewith.net/img/e10fac31e2bae644fb6fbc6d3de3ed83.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Faded Theater"], region: "Fontaine", area: "Pétrichor", image: "https://img.gamewith.net/img/7b7d843308aca574e54baea8081be1c9.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Waterfall Wen"], region: "Fontaine", area: "Versant Est du Mont Automnéqui", image: "https://img.gamewith.net/img/316ba51c4733ec3cf757e46fac396896.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Sanctum of Rainbow Spirits"], region: "Natlan", area: "Eaux d'Ameyalco", image: "https://img.gamewith.net/img/962b95b50cd3ccf215240dd5201336da.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Moonchild's Treasures", "Moochild's Treasures"], region: "Nod-Krai", area: "Pic Ashveil", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" }
+];
+
+// Correspondance par nom de set lorsque l'API ne fournit pas le domaine.
+const SET_DOMAIN = {
+  "thundering fury": "Midsummer Courtyard", "thundersoother": "Midsummer Courtyard",
+  "blizzard strayer": "Peak of Vindagnyr", "heart of depth": "Peak of Vindagnyr",
+  "tenacity of the millelith": "Ridge Watch", "pale flame": "Ridge Watch",
+  "viridescent venerer": "Valley of Remembrance", "maiden beloved": "Valley of Remembrance",
+  "bloodstained chivalry": "Clear Pool and Mountain Cavern", "noblesse oblige": "Clear Pool and Mountain Cavern",
+  "archaic petra": "Domain of Guyun", "retracing bolide": "Domain of Guyun",
+  "lavawalker": "Hidden Palace of Zhou Formula", "crimson witch of flames": "Hidden Palace of Zhou Formula",
+  "vermillion hereafter": "The Lost Valley", "echoes of an offering": "The Lost Valley",
+  "shimenawa's reminiscence": "Momiji-Dyed Court", "emblem of severed fate": "Momiji-Dyed Court",
+  "ocean-hued clam": "Slumbering Court", "husk of opulent dreams": "Slumbering Court",
+  "desert pavilion chronicle": "City of Gold", "flower of paradise lost": "City of Gold",
+  "vourukasha's glow": "Molten Iron Fortress", "nymph's dream": "Molten Iron Fortress",
+  "deepwood memories": "Spire of Solitary Enlightenment", "gilded dreams": "Spire of Solitary Enlightenment",
+  "golden troupe": "Denouement of Sin", "marechaussee hunter": "Denouement of Sin",
+  "fragment of harmonic whimsy": "Faded Theater", "unfinished reverie": "Faded Theater",
+  "nighttime whispers in the echoing woods": "Waterfall Wen", "song of days past": "Waterfall Wen",
+  "obsidian codex": "Sanctum of Rainbow Spirits", "scroll of the hero of cinder city": "Sanctum of Rainbow Spirits"
+};
+
+function getDomainInfo(item) {
+  const raw = normalize(getDomain(item));
+  let found = DOMAIN_INFO.find(domain =>
+    domain.names.some(name => raw.includes(normalize(name)))
+  );
+  if (!found) {
+    const setName = normalize(getName(item));
+    const domainName = Object.entries(SET_DOMAIN).find(([set]) => setName.includes(set))?.[1];
+    found = DOMAIN_INFO.find(domain => domainName && domain.names.includes(domainName));
+  }
+  return found || null;
+}
+
+function renderDomainLocation(item) {
+  const info = getDomainInfo(item);
+  if (!info) {
+    return `<section class="domain-location"><h3>Où farmer ce set ?</h3><p>Le domaine et la région ne sont pas encore renseignés pour cet artéfact.</p><p class="domain-source">Source : ${escapeHtml(getDomain(item))}</p></section>`;
+  }
+  const mapImage = info.image
+    ? `<img class="domain-map-image" src="${escapeHtml(info.image)}" alt="Carte de localisation du domaine ${escapeHtml(info.names[0])}" loading="lazy" onerror="this.closest('.domain-map-frame').classList.add('map-image-error');this.remove()">`
+    : `<div class="domain-map-placeholder">Carte bientôt disponible</div>`;
+  return `
+    <section class="domain-location">
+      <h3>Où farmer ce set ?</h3>
+      <div class="domain-location-meta">
+        <span><small>DOMAINE</small><strong>${escapeHtml(info.names[0])}</strong></span>
+        <span><small>RÉGION</small><strong>${escapeHtml(info.region)}</strong></span>
+        <span><small>SECTEUR</small><strong>${escapeHtml(info.area)}</strong></span>
+      </div>
+      <div class="domain-map-frame">${mapImage}</div>
+      <p class="domain-map-caption">Carte de localisation du domaine · ${escapeHtml(info.region)}</p>
+      <a class="domain-map-link" href="${escapeHtml(info.map)}" target="_blank" rel="noopener noreferrer">Ouvrir la carte interactive</a>
+    </section>
+  `;
+}
+
 function getPieces(item) {
   const p = item.pieces || item.Pieces || {};
 
@@ -589,6 +673,8 @@ function openDetails(key) {
       </div>
 
     </div>
+
+    ${renderDomainLocation(item)}
 
     <div class="bonus-block">
       <h3>Bonus 2 pièces</h3>
