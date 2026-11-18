@@ -1,9 +1,4 @@
 const API_BASE = "https://genshin-impact.up.railway.app";
-const TALENT_BOOK_APIS = [
-  "https://genshin-impact.up.railway.app/talentbooks?infoDataSize=all",
-  "https://genshin-impact.up.railway.app/talentbooks?details=true&sort=name",
-  "https://genshin-app-api.herokuapp.com/api/talentbooks?infoDataSize=all"
-];
 const STORAGE_KEY = "genshin-artefacts-wishlist-v1";
 const PLAN_STORAGE_KEY = "genshin-artefacts-days-v1";
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -42,7 +37,7 @@ function normalizeDays(values) {
   if (!Array.isArray(values)) return [];
   return [...new Set(values.map(v => EN_DAYS[v] || EN_DAYS[String(v).toLowerCase()] || v).filter(v => DAYS.includes(v)))];
 }
-function getAvailability(x) { return normalizeDays(x.farmingDays || x.farming_days || x.days || x.availability || []); }
+function getAvailability(x) { return x.kind === "material" ? (x.farmingDays || []) : normalizeDays(x.farmingDays || x.farming_days || x.days || x.availability || []); }
 function getPieces(item) {
   const p = item.pieces || item.Pieces || {};
   return [["flower","Fleur"],["plume","Plume"],["sands","Sablier"],["goblet","Coupe"],["circlet","Couronne"]].map(([k,label]) => {
@@ -107,120 +102,47 @@ async function loadArtifacts() {
  } catch(e) { state.artifacts=[]; el("artifactStatus").textContent="Impossible de charger les artéfacts depuis l'API. Vérifie ta connexion ou réessaie plus tard."; }
  renderCatalog(); renderPlanner();
 }
-function isTalentBook(x) {
- const n=normalize(getName(x)); const type=normalize(`${x.type||""} ${x.category||""} ${x.materialType||""}`);
- return /^(teachings|guide|philosophies) of /.test(n) || type.includes("talent") && type.includes("book");
-}
+/* Livres d'aptitude : uniquement le palier Philosophies (rareté maximale, 4★ en jeu).
+   Les images utilisent les identifiants officiels des ressources communautaires JMP. */
+const TALENT_BOOKS = [
+  // Mondstadt — Gorge de l'oubli
+  ["philosophies-of-freedom", "Philosophies de la Liberté", "Liberté", "Mondstadt", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-resistance", "Philosophies de la Résistance", "Résistance", "Mondstadt", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-ballad", "Philosophies de la Ballade", "Ballade", "Mondstadt", ["Mercredi","Samedi","Dimanche"]],
+  // Liyue — Manoir Taishan
+  ["philosophies-of-prosperity", "Philosophies de la Prospérité", "Prospérité", "Liyue", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-diligence", "Philosophies de la Diligence", "Diligence", "Liyue", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-gold", "Philosophies de l'Or", "Or", "Liyue", ["Mercredi","Samedi","Dimanche"]],
+  // Inazuma — Cour violette
+  ["philosophies-of-transience", "Philosophies de l'Éphémère", "Éphémère", "Inazuma", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-elegance", "Philosophies de l'Élégance", "Élégance", "Inazuma", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-light", "Philosophies de la Lumière", "Lumière", "Inazuma", ["Mercredi","Samedi","Dimanche"]],
+  // Sumeru — Tour de l'ignorance
+  ["philosophies-of-admonition", "Philosophies de l'Admonestation", "Admonestation", "Sumeru", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-ingenuity", "Philosophies de l'Ingéniosité", "Ingéniosité", "Sumeru", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-praxis", "Philosophies de la Praxis", "Praxis", "Sumeru", ["Mercredi","Samedi","Dimanche"]],
+  // Fontaine — Gloire pâlie
+  ["philosophies-of-equity", "Philosophies de l'Équité", "Équité", "Fontaine", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-justice", "Philosophies de la Justice", "Justice", "Fontaine", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-order", "Philosophies de l'Ordre", "Ordre", "Fontaine", ["Mercredi","Samedi","Dimanche"]],
+  // Natlan — Ruines flamboyantes
+  ["philosophies-of-contention", "Philosophies de la Contestation", "Contestation", "Natlan", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-kindling", "Philosophies de l'Embrasement", "Embrasement", "Natlan", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-conflict", "Philosophies du Conflit", "Conflit", "Natlan", ["Mercredi","Samedi","Dimanche"]],
+  // Nod-Krai — Capitale sans lumière
+  ["philosophies-of-moonlight", "Philosophies de la Lueur lunaire", "Lueur lunaire", "Nod-Krai", ["Lundi","Jeudi","Dimanche"]],
+  ["philosophies-of-elysium", "Philosophies de l'Élysée", "Élysée", "Nod-Krai", ["Mardi","Vendredi","Dimanche"]],
+  ["philosophies-of-vagrancy", "Philosophies de l'Errance", "Errance", "Nod-Krai", ["Mercredi","Samedi","Dimanche"]]
+].map(([id,name,family,region,farmingDays]) => ({
+  kind: "material", key: id, id, name, family, region, rarity: 4,
+  farmingDays, img: `https://genshin.jmp.blue/assets/materials/${id}.png`,
+  domain: ({Mondstadt:"Gorge de l'oubli",Liyue:"Manoir Taishan",Inazuma:"Cour violette",Sumeru:"Tour de l'ignorance",Fontaine:"Gloire pâlie",Natlan:"Ruines flamboyantes","Nod-Krai":"Capitale sans lumière"})[region]
+}));
 async function loadMaterials() {
- const normalizeBookFamily = (slug, family) => {
-  const availability = normalizeDays(family.availability || family.farmingDays || family.days || []);
-  const items = Array.isArray(family.items) ? family.items : [];
-  return items.map((book, index) => {
-   const id = book.id || book.slug || "";
-   const rarity = Number(book.rarity || book.Rarity || (index + 2)) || 2;
-   return {
-    ...book, kind: "material",
-    key: `talent-book:${id || `${slug}-${index}`}`,
-    name: book.name || book.Name || id.replace(/-/g, " "),
-    rarity,
-    img: book.icon || book.image || book.img || book.iconUrl ||
-      (id ? `https://genshin.jmp.blue/materials/talent-book/${slug}/${id}` : ""),
-    farmingDays: availability,
-    family: family.name || slug,
-    source: family.source || "",
-    materialType: "talent-book"
-   };
-  });
- };
-
- let list = [];
- // API genshin.dev : on charge les familles puis leurs trois niveaux de rareté.
- try {
-  const slugs = await fetchJson("https://genshin.jmp.blue/materials/talent-book");
-  if (Array.isArray(slugs)) {
-   const families = await Promise.all(slugs.map(async slug => {
-    try {
-     const family = await fetchJson(`https://genshin.jmp.blue/materials/talent-book/${encodeURIComponent(slug)}?lang=fr`);
-     return normalizeBookFamily(slug, family);
-    } catch { return []; }
-   }));
-   list = families.flat();
-  }
- } catch {}
-
- // Repli vers l'ancienne API si nécessaire.
- if (!list.length) {
-  for (const url of TALENT_BOOK_APIS) {
-   try {
-    const payload = await fetchJson(url);
-    const raw = unwrapList(payload, ["talentBooks", "talentbooks", "materials", "data", "results"]);
-    const books = raw.filter(x => /^(teachings|guide|philosophies) of /.test(normalize(getName(x))));
-    if (books.length) {
-     list = books.map((x, i) => ({
-      ...x, kind: "material",
-      key: `talent-book:${x.id || x._id || x.name || i}`,
-      name: getName(x), rarity: getRarity(x),
-      img: getImage(x), farmingDays: getAvailability(x)
-     }));
-     break;
-    }
-   } catch {}
-  }
- }
-
- // Catalogue local de secours : le site reste utilisable même si les API sont indisponibles.
- if (!list.length) {
-  const families = [
-   ["freedom","Liberté",["Lundi","Jeudi"]],
-   ["resistance","Résistance",["Mardi","Vendredi"]],
-   ["ballad","Ballade",["Mercredi","Samedi"]],
-   ["prosperity","Prospérité",["Lundi","Jeudi"]],
-   ["diligence","Diligence",["Mardi","Vendredi"]],
-   ["gold","Or",["Mercredi","Samedi"]],
-   ["transience","Éphémère",["Lundi","Jeudi"]],
-   ["elegance","Élégance",["Mardi","Vendredi"]],
-   ["light","Lumière",["Mercredi","Samedi"]],
-   ["admonition","Admonition",["Lundi","Jeudi"]],
-   ["ingenuity","Ingéniosité",["Mardi","Vendredi"]],
-   ["praxis","Pratique",["Mercredi","Samedi"]],
-   ["equity","Équité",["Lundi","Jeudi"]],
-   ["justice","Justice",["Mardi","Vendredi"]],
-   ["order","Ordre",["Mercredi","Samedi"]],
-   ["contention","Contention",["Lundi","Jeudi"]],
-   ["kindling","Embrasement",["Mardi","Vendredi"]],
-   ["conflict","Conflit",["Mercredi","Samedi"]]
-  ];
-  const tiers = [
-   ["Enseignements","teachings",2],
-   ["Guide","guide",3],
-   ["Philosophies","philosophies",4]
-  ];
-  list = families.flatMap(([slug, family, days]) => tiers.map(([label, id, rarity]) => ({
-   kind: "material",
-   key: `talent-book:${id}-of-${slug}`,
-   name: `${label} de ${family}`,
-   rarity,
-   img: `https://genshin.jmp.blue/materials/talent-book/${slug}/${id}-of-${slug}`,
-   farmingDays: days,
-   family,
-   materialType: "talent-book"
-  })));
- }
-
- state.materials = list.map(x => ({
-  ...x,
-  kind: "material",
-  key: String(x.key || `talent-book:${x.id || getName(x)}`),
-  name: getName(x),
-  rarity: getRarity(x),
-  img: getImage(x),
-  farmingDays: getAvailability(x)
- }));
- el("materialStatus").textContent = state.materials.length
-  ? `${state.materials.length} matériaux d'aptitude chargés.`
-  : "Aucun matériau d'aptitude n'a pu être chargé.";
- renderCatalog();
- renderPlanner();
+  state.materials = TALENT_BOOKS;
+  el("materialStatus").textContent = `${state.materials.length} matériaux d'aptitude (palier Philosophies, 4★) chargés.`;
+  renderCatalog();
+  renderPlanner();
 }
 function currentItems() { return state.category==="artifacts"?state.artifacts:state.materials; }
 function filteredItems() {
@@ -232,9 +154,9 @@ function renderCatalog() {
  const items=filteredItems();
  el("setCount").textContent = currentItems().length || "—";
  const statLabel = document.querySelector(".stat-card small");
- if (statLabel) statLabel.textContent = state.category === "artifacts" ? "artéfacts chargés" : "matériaux chargés";
+ if (statLabel) statLabel.textContent = state.category === "artifacts" ? "artéfacts chargés" : "livres chargés";
  el("artifactGrid").innerHTML=items.map(item=>{const key=getKey(item),wished=state.wishlist.has(key),rarity=getRarity(item),availability=getAvailability(item);
- return `<button class="artifact-card" data-open="${escapeHtml(key)}" aria-label="Afficher ${escapeHtml(item.name)}"><span class="wish-mark">${wished?"♥":"♡"}</span><div class="artifact-art">${imageMarkup(getImage(item),item.name)}</div><div class="card-copy"><h3>${escapeHtml(item.name)}</h3><div class="rarity">${"★".repeat(Math.min(5,rarity))}</div><p class="card-domain">${state.category==="artifacts"?escapeHtml(getDomain(item)):availability.length?`Disponible : ${availability.join(" · ")}`:"Livre d'aptitude"}</p></div></button>`;
+ return `<button class="artifact-card" data-open="${escapeHtml(key)}" aria-label="Afficher ${escapeHtml(item.name)}"><span class="wish-mark">${wished?"♥":"♡"}</span><div class="artifact-art">${imageMarkup(getImage(item),item.name)}</div><div class="card-copy"><h3>${escapeHtml(item.name)}</h3><div class="rarity">${"★".repeat(Math.min(5,rarity))}</div><p class="card-domain">${state.category==="artifacts"?escapeHtml(getDomain(item)):availability.length?`Disponible : ${availability.join(" · ")}`:"Philosophies d’aptitude"}</p></div></button>`;
  }).join("");
  el("emptyState").classList.toggle("hidden",items.length>0);
 }
@@ -242,7 +164,7 @@ function renderPlanner() {
  const wished= [...state.wishlist].map(key=>[...state.artifacts,...state.materials].find(x=>getKey(x)===key)).filter(Boolean);
  el("plannerEmpty").classList.toggle("hidden",wished.length>0); el("planner").classList.toggle("hidden",!wished.length);
  if(!wished.length){el("planner").innerHTML="";updateCounts();return;}
- const choices=`<section class="planner-choices"><h2>Choisis tes jours de farm</h2><p>Tu peux sélectionner plusieurs jours pour chaque artéfact ou matériau. Les jours disponibles pour les livres d'aptitude sont rappelés sous leur nom.</p><div class="planner-choice-list">${wished.map(item=>{const key=getKey(item),selected=state.farmDays[key]||[],avail=getAvailability(item);return `<article class="planner-choice"><div class="planner-choice-info">${imageMarkup(getImage(item),item.name)}<div><strong>${escapeHtml(item.name)}</strong><p class="card-domain">${item.kind==="material"?(avail.length?`Disponible : ${avail.join(", ")}`:"Disponibilité non fournie par la source") : "Artéfact · domaine accessible tous les jours"}</p></div></div><div class="day-selector">${DAYS.map(day=>{const on=selected.includes(day);return `<button type="button" class="day-toggle ${on?"selected":""}" data-day-toggle="${escapeHtml(key)}" data-day="${day}" aria-pressed="${on}">${day}</button>`;}).join("")}</div></article>`;}).join("")}</div></section>`;
+ const choices=`<section class="planner-choices"><h2>Choisis tes jours de farm</h2><p>Tu peux sélectionner plusieurs jours pour chaque artéfact ou matériau. Les jours disponibles pour les livres d'aptitude sont rappelés sous leur nom.</p><div class="planner-choice-list">${wished.map(item=>{const key=getKey(item),selected=state.farmDays[key]||[],avail=getAvailability(item);return `<article class="planner-choice"><div class="planner-choice-info">${imageMarkup(getImage(item),item.name)}<div><strong>${escapeHtml(item.name)}</strong><p class="card-domain">${item.kind==="material"?(avail.length?`Disponible : ${avail.join(", ")}`:"Disponibilité non fournie par la source") : "Artéfact · domaine accessible tous les jours"}</p></div></div><div class="day-selector">${DAYS.map(day=>{const on=selected.includes(day);const allowed=item.kind!=="material" || avail.includes(day);return `<button type="button" class="day-toggle ${on?"selected":""}" data-day-toggle="${escapeHtml(key)}" data-day="${day}" aria-pressed="${on}" ${allowed?"":"disabled"} title="${allowed?`Disponible le ${day}`:`Indisponible le ${day} pour ce livre`}">${day}</button>`;}).join("")}</div></article>`;}).join("")}</div></section>`;
  const week=`<section class="planner-week"><h2>Mon planning de farm</h2><div class="planner-week-grid">${DAYS.map(day=>{const dayItems=wished.filter(x=>(state.farmDays[getKey(x)]||[]).includes(day));return `<section class="day-column"><h3>${day}</h3><div class="day-items">${dayItems.length?dayItems.map(item=>`<article class="planner-item"><button class="remove-item" data-remove="${escapeHtml(getKey(item))}" aria-label="Retirer ${escapeHtml(item.name)}">×</button>${imageMarkup(getImage(item),item.name)}<strong>${escapeHtml(item.name)}</strong></article>`).join(""):`<p class="no-farm">Rien de prévu</p>`}</div></section>`;}).join("")}</div></section>`;
  el("planner").innerHTML=choices+week;updateCounts();
 }
@@ -251,20 +173,20 @@ function openDetails(key) {
  const wished=state.wishlist.has(key), rarity=getRarity(item), material=item.kind==="material", avail=getAvailability(item);
  const bonus2=item.bonus?.["2pc"]||item["2pc"]||"",bonus4=item.bonus?.["4pc"]||item["4pc"]||"";
  let extra="";
- if(material) extra=`<div class="bonus-block"><h3>Disponibilité</h3><p>${avail.length?`Ce livre se récupère le : <strong>${avail.join(", ")}</strong>.`:"Les jours de disponibilité ne sont pas indiqués par la source de données."}</p></div><div class="bonus-block"><h3>Rareté</h3><p>${"★".repeat(Math.min(5,rarity))} · ${rarity} étoile${rarity>1?"s":""}</p></div>`;
+ if(material) extra=`<div class="bonus-block"><h3>Disponibilité</h3><p>${avail.length?`Ce livre se récupère le : <strong>${avail.join(", ")}</strong>.`:"Les jours de disponibilité ne sont pas indiqués par la source de données."}</p></div><div class="bonus-block"><h3>Rareté</h3><p>${"★".repeat(Math.min(5,rarity))} · ${rarity}★ (rareté maximale des livres d’aptitude)</p></div>`;
  else extra=`<div class="bonus-block"><h3>Bonus 2 pièces</h3><p>${escapeHtml(bonus2||"Bonus non disponible dans la source de données.")}</p></div><div class="bonus-block"><h3>Bonus 4 pièces</h3><p>${escapeHtml(bonus4||"Bonus non disponible dans la source de données.")}</p></div>${renderDomainLocation(item)}${getPieces(item).length?`<div class="bonus-block"><h3>Pièces du set</h3><div class="piece-grid">${getPieces(item).map(p=>`<div class="piece">${p.img?`<img src="${escapeHtml(p.img)}" alt="" loading="lazy">`:""}<strong>${escapeHtml(p.name||p.label)}</strong><p>${escapeHtml(p.description)}</p></div>`).join("")}</div></div>`:""}`;
- el("detailContent").innerHTML=`<div class="detail-head">${imageMarkup(getImage(item),item.name,"detail-image")}<div><p class="eyebrow">${material?"MATÉRIAU D'APTITUDE":"SET D’ARTÉFACTS"} · ${rarity}★</p><h2 id="detailTitle">${escapeHtml(item.name)}</h2><p class="detail-domain">${material?"Livre d'amélioration d'aptitude":escapeHtml(getDomain(item))}</p></div></div>${extra}<button class="button detail-action" id="toggleWishlist">${wished?"♥ Retirer de ma liste":"♡ Ajouter à ma liste de farm"}</button>`;
+ el("detailContent").innerHTML=`<div class="detail-head">${imageMarkup(getImage(item),item.name,"detail-image")}<div><p class="eyebrow">${material?"MATÉRIAU D'APTITUDE":"SET D’ARTÉFACTS"} · ${rarity}★</p><h2 id="detailTitle">${escapeHtml(item.name)}</h2><p class="detail-domain">${material?"Philosophie d'aptitude · palier maximal":escapeHtml(getDomain(item))}</p></div></div>${extra}<button class="button detail-action" id="toggleWishlist">${wished?"♥ Retirer de ma liste":"♡ Ajouter à ma liste de farm"}</button>`;
  el("detailDialog").showModal();el("toggleWishlist").addEventListener("click",()=>{if(state.wishlist.has(key)){state.wishlist.delete(key);delete state.farmDays[key];}else{state.wishlist.add(key);if(material&&avail.length)state.farmDays[key]=[...avail];}saveWishlist();saveFarmDays();renderCatalog();renderPlanner();el("detailDialog").close();});
 }
 function setView(view){state.view=view;el("catalogueView").classList.toggle("hidden",view!=="catalogue");el("planifView").classList.toggle("hidden",view!=="planif");document.querySelectorAll(".tab").forEach(t=>{const active=t.dataset.view===view;t.classList.toggle("active",active);if(active)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});if(view==="planif")renderPlanner();}
-function setCategory(category){state.category=category;document.querySelectorAll(".category-tab").forEach(t=>t.classList.toggle("active",t.dataset.category===category));el("rarityFilter").value="all";el("searchInput").value="";el("catalogueHeading").textContent=category==="artifacts"?"Trouve ton prochain set":"Trouve tes livres d'aptitude";el("catalogueDescription").textContent=category==="artifacts"?"Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de farm.":"Retrouve les Enseignements, Guides et Philosophies pour améliorer les aptitudes de tes personnages.";el("rarityFilter").innerHTML='<option value="all">Toutes</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option>';renderCatalog();}
+function setCategory(category){state.category=category;document.querySelectorAll(".category-tab").forEach(t=>t.classList.toggle("active",t.dataset.category===category));el("rarityFilter").value="all";el("searchInput").value="";el("catalogueHeading").textContent=category==="artifacts"?"Trouve ton prochain set":"Trouve tes livres d'aptitude";el("catalogueDescription").textContent=category==="artifacts"?"Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de farm.":"Retrouve uniquement les Philosophies, le palier maximal des livres d'aptitude.";el("rarityFilter").innerHTML=category==="artifacts"?'<option value="all">Toutes</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option>':'<option value="all">Toutes</option><option value="4">4★ · palier maximal</option>';renderCatalog();}
 
 document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setView(t.dataset.view)));
 document.querySelectorAll(".category-tab").forEach(t=>t.addEventListener("click",()=>setCategory(t.dataset.category)));
 el("searchInput").addEventListener("input",renderCatalog);el("rarityFilter").addEventListener("change",renderCatalog);
 el("showWishlist").addEventListener("click",()=>setView("planif"));el("backToCatalog").addEventListener("click",()=>setView("catalogue"));
 el("artifactGrid").addEventListener("click",e=>{const card=e.target.closest("[data-open]");if(card)openDetails(card.dataset.open);});
-el("planner").addEventListener("click",e=>{const day=e.target.closest("[data-day-toggle]");if(day){const k=day.dataset.dayToggle,d=day.dataset.day;state.farmDays[k] ||= [];state.farmDays[k]=state.farmDays[k].includes(d)?state.farmDays[k].filter(x=>x!==d):[...state.farmDays[k],d];saveFarmDays();renderPlanner();return;}const remove=e.target.closest("[data-remove]");if(remove){state.wishlist.delete(remove.dataset.remove);delete state.farmDays[remove.dataset.remove];saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}});
+el("planner").addEventListener("click",e=>{const day=e.target.closest("[data-day-toggle]");if(day){if(day.disabled)return;const k=day.dataset.dayToggle,d=day.dataset.day;state.farmDays[k] ||= [];state.farmDays[k]=state.farmDays[k].includes(d)?state.farmDays[k].filter(x=>x!==d):[...state.farmDays[k],d];saveFarmDays();renderPlanner();return;}const remove=e.target.closest("[data-remove]");if(remove){state.wishlist.delete(remove.dataset.remove);delete state.farmDays[remove.dataset.remove];saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}});
 el("clearWishlist").addEventListener("click",()=>{if(state.wishlist.size&&confirm("Supprimer tous les artéfacts et matériaux de ta liste ?")){state.wishlist.clear();state.farmDays={};saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}});
 el("closeDialog").addEventListener("click",()=>el("detailDialog").close());el("detailDialog").addEventListener("click",e=>{if(e.target===el("detailDialog"))el("detailDialog").close();});
 loadWishlist();updateCounts();loadArtifacts();loadMaterials();

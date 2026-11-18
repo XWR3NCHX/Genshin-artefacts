@@ -37,7 +37,8 @@
 .planner-choice-info strong { font-size: .98rem; }
 .day-selector { display: flex; flex-wrap: wrap; gap: 8px; }
 .day-toggle { padding: 8px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); color: var(--muted); font-size: .85rem; font-weight: 650; cursor: pointer; }
-.day-toggle:hover { border-color: var(--gold); color: var(--text); }
+.day-toggle:hover:not(:disabled) { border-color: var(--gold); color: var(--text); }
+.day-toggle:disabled { opacity: .28; cursor: not-allowed; text-decoration: line-through; filter: grayscale(1); }
 .day-toggle.selected { background: var(--gold); border-color: var(--gold); color: #25211a; }
 .planner-week { margin-top: 38px; }
 .planner-week > h2 { margin-bottom: 18px; }
