@@ -112,14 +112,115 @@ function isTalentBook(x) {
  return /^(teachings|guide|philosophies) of /.test(n) || type.includes("talent") && type.includes("book");
 }
 async function loadMaterials() {
- let list=[];
- for(const url of TALENT_BOOK_APIS) { try { const payload=await fetchJson(url); list=unwrapList(payload,["talentBooks","talentbooks","materials","data","results"]); list=list.filter(isTalentBook); if(list.length) break; } catch {} }
- if(!list.length) {
-  try { const payload=await fetchJson("https://genshin.jmp.blue/materials"); const all=unwrapList(payload,["materials","data","results"]); list=all.filter(isTalentBook); } catch {}
+ const normalizeBookFamily = (slug, family) => {
+  const availability = normalizeDays(family.availability || family.farmingDays || family.days || []);
+  const items = Array.isArray(family.items) ? family.items : [];
+  return items.map((book, index) => {
+   const id = book.id || book.slug || "";
+   const rarity = Number(book.rarity || book.Rarity || (index + 2)) || 2;
+   return {
+    ...book, kind: "material",
+    key: `talent-book:${id || `${slug}-${index}`}`,
+    name: book.name || book.Name || id.replace(/-/g, " "),
+    rarity,
+    img: book.icon || book.image || book.img || book.iconUrl ||
+      (id ? `https://genshin.jmp.blue/materials/talent-book/${slug}/${id}` : ""),
+    farmingDays: availability,
+    family: family.name || slug,
+    source: family.source || "",
+    materialType: "talent-book"
+   };
+  });
+ };
+
+ let list = [];
+ // API genshin.dev : on charge les familles puis leurs trois niveaux de rareté.
+ try {
+  const slugs = await fetchJson("https://genshin.jmp.blue/materials/talent-book");
+  if (Array.isArray(slugs)) {
+   const families = await Promise.all(slugs.map(async slug => {
+    try {
+     const family = await fetchJson(`https://genshin.jmp.blue/materials/talent-book/${encodeURIComponent(slug)}?lang=fr`);
+     return normalizeBookFamily(slug, family);
+    } catch { return []; }
+   }));
+   list = families.flat();
+  }
+ } catch {}
+
+ // Repli vers l'ancienne API si nécessaire.
+ if (!list.length) {
+  for (const url of TALENT_BOOK_APIS) {
+   try {
+    const payload = await fetchJson(url);
+    const raw = unwrapList(payload, ["talentBooks", "talentbooks", "materials", "data", "results"]);
+    const books = raw.filter(x => /^(teachings|guide|philosophies) of /.test(normalize(getName(x))));
+    if (books.length) {
+     list = books.map((x, i) => ({
+      ...x, kind: "material",
+      key: `talent-book:${x.id || x._id || x.name || i}`,
+      name: getName(x), rarity: getRarity(x),
+      img: getImage(x), farmingDays: getAvailability(x)
+     }));
+     break;
+    }
+   } catch {}
+  }
  }
- state.materials=list.map((x,i)=>({...x,kind:"material",key:String(x.key||x.slug||x.id||getName(x)||`book-${i}`),name:getName(x),rarity:getRarity(x),img:getImage(x),farmingDays:getAvailability(x)}));
- el("materialStatus").textContent=list.length?`${list.length} matériaux de livre d'aptitude chargés.`:"Impossible de charger les livres d'aptitude. L'API ne fournit pas de catalogue compatible pour le moment.";
- renderCatalog(); renderPlanner();
+
+ // Catalogue local de secours : le site reste utilisable même si les API sont indisponibles.
+ if (!list.length) {
+  const families = [
+   ["freedom","Liberté",["Lundi","Jeudi"]],
+   ["resistance","Résistance",["Mardi","Vendredi"]],
+   ["ballad","Ballade",["Mercredi","Samedi"]],
+   ["prosperity","Prospérité",["Lundi","Jeudi"]],
+   ["diligence","Diligence",["Mardi","Vendredi"]],
+   ["gold","Or",["Mercredi","Samedi"]],
+   ["transience","Éphémère",["Lundi","Jeudi"]],
+   ["elegance","Élégance",["Mardi","Vendredi"]],
+   ["light","Lumière",["Mercredi","Samedi"]],
+   ["admonition","Admonition",["Lundi","Jeudi"]],
+   ["ingenuity","Ingéniosité",["Mardi","Vendredi"]],
+   ["praxis","Pratique",["Mercredi","Samedi"]],
+   ["equity","Équité",["Lundi","Jeudi"]],
+   ["justice","Justice",["Mardi","Vendredi"]],
+   ["order","Ordre",["Mercredi","Samedi"]],
+   ["contention","Contention",["Lundi","Jeudi"]],
+   ["kindling","Embrasement",["Mardi","Vendredi"]],
+   ["conflict","Conflit",["Mercredi","Samedi"]]
+  ];
+  const tiers = [
+   ["Enseignements","teachings",2],
+   ["Guide","guide",3],
+   ["Philosophies","philosophies",4]
+  ];
+  list = families.flatMap(([slug, family, days]) => tiers.map(([label, id, rarity]) => ({
+   kind: "material",
+   key: `talent-book:${id}-of-${slug}`,
+   name: `${label} de ${family}`,
+   rarity,
+   img: `https://genshin.jmp.blue/materials/talent-book/${slug}/${id}-of-${slug}`,
+   farmingDays: days,
+   family,
+   materialType: "talent-book"
+  })));
+ }
+
+ state.materials = list.map(x => ({
+  ...x,
+  kind: "material",
+  key: String(x.key || `talent-book:${x.id || getName(x)}`),
+  name: getName(x),
+  rarity: getRarity(x),
+  img: getImage(x),
+  farmingDays: getAvailability(x)
+ }));
+ el("materialStatus").textContent = state.materials.length
+  ? `${state.materials.length} matériaux d'aptitude chargés.`
+  : "Aucun matériau d'aptitude n'a pu être chargé.";
+ renderCatalog();
+ renderPlanner();
 }
 function currentItems() { return state.category==="artifacts"?state.artifacts:state.materials; }
 function filteredItems() {
@@ -131,7 +232,7 @@ function renderCatalog() {
  const items=filteredItems();
  el("setCount").textContent = currentItems().length || "—";
  const statLabel = document.querySelector(".stat-card small");
- if (statLabel) statLabel.textContent = state.category === "artifacts" ? "artéfacts chargés" : "livres chargés";
+ if (statLabel) statLabel.textContent = state.category === "artifacts" ? "artéfacts chargés" : "matériaux chargés";
  el("artifactGrid").innerHTML=items.map(item=>{const key=getKey(item),wished=state.wishlist.has(key),rarity=getRarity(item),availability=getAvailability(item);
  return `<button class="artifact-card" data-open="${escapeHtml(key)}" aria-label="Afficher ${escapeHtml(item.name)}"><span class="wish-mark">${wished?"♥":"♡"}</span><div class="artifact-art">${imageMarkup(getImage(item),item.name)}</div><div class="card-copy"><h3>${escapeHtml(item.name)}</h3><div class="rarity">${"★".repeat(Math.min(5,rarity))}</div><p class="card-domain">${state.category==="artifacts"?escapeHtml(getDomain(item)):availability.length?`Disponible : ${availability.join(" · ")}`:"Livre d'aptitude"}</p></div></button>`;
  }).join("");
