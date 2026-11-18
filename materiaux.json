@@ -271,5 +271,44 @@
       "Dimanche"
     ],
     "image": "philosophies-of-vagrancy.png"
+  },
+    {
+    "id": "philosophies-of-charity",
+    "name": "Philosophies de la Charité",
+    "family": "Charité",
+    "region": "Snezhnaya",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-charity.png"
+  },
+  {
+    "id": "philosophies-of-fortitude",
+    "name": "Philosophies de la Fortitude",
+    "family": "Fortitude",
+    "region": "Snezhnaya",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-fortitude.png"
+  },
+  {
+    "id": "philosophies-of-glory",
+    "name": "Philosophies de la Gloire",
+    "family": "Gloire",
+    "region": "Snezhnaya",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-glory.png"
   }
 ]
