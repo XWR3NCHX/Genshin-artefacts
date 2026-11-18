@@ -102,42 +102,27 @@ async function loadArtifacts() {
  } catch(e) { state.artifacts=[]; el("artifactStatus").textContent="Impossible de charger les artéfacts depuis l'API. Vérifie ta connexion ou réessaie plus tard."; }
  renderCatalog(); renderPlanner();
 }
-/* Livres d'aptitude : uniquement le palier Philosophies (rareté maximale, 4★ en jeu).
-   Les images utilisent les identifiants officiels des ressources communautaires JMP. */
-const TALENT_BOOKS = [
-  // id, nom français, famille, région, jours, nom exact du fichier image
-  ["philosophies-of-freedom", "Philosophies de la Liberté", "Liberté", "Mondstadt", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Freedom_Materials_Genshin_Impact.png"],
-  ["philosophies-of-resistance", "Philosophies de la Résistance", "Résistance", "Mondstadt", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Resistance_Materials_Genshin_Impact.png"],
-  ["philosophies-of-ballad", "Philosophies de la Ballade", "Ballade", "Mondstadt", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Ballad_Materials_Genshin_Impact.png"],
-  ["philosophies-of-prosperity", "Philosophies de la Prospérité", "Prospérité", "Liyue", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Prosperity_Materials_Genshin_Impact.png"],
-  ["philosophies-of-diligence", "Philosophies de la Diligence", "Diligence", "Liyue", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Diligence_Materials_Genshin_Impact.png"],
-  ["philosophies-of-gold", "Philosophies de l'Or", "Or", "Liyue", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Gold_Materials_Genshin_Impact.png"],
-  ["philosophies-of-transience", "Philosophies de l'Éphémère", "Éphémère", "Inazuma", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Transience_Materials_Genshin_Impact.png"],
-  ["philosophies-of-elegance", "Philosophies de l'Élégance", "Élégance", "Inazuma", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Elegance_Materials_Genshin_Impact.png"],
-  ["philosophies-of-light", "Philosophies de la Lumière", "Lumière", "Inazuma", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Light_Materials_Genshin_Impact.png"],
-  ["philosophies-of-admonition", "Philosophies de l'Admonestation", "Admonestation", "Sumeru", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Admonition_Materials_Genshin_Impact.png"],
-  ["philosophies-of-ingenuity", "Philosophies de l'Ingéniosité", "Ingéniosité", "Sumeru", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Ingenuity_Materials_Genshin_Impact.png"],
-  ["philosophies-of-praxis", "Philosophies de la Praxis", "Praxis", "Sumeru", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Praxis_Materials_Genshin_Impact.png"],
-  ["philosophies-of-equity", "Philosophies de l'Équité", "Équité", "Fontaine", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Equity_Materials_Genshin_Impact.png"],
-  ["philosophies-of-justice", "Philosophies de la Justice", "Justice", "Fontaine", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Justice_Materials_Genshin_Impact.png"],
-  ["philosophies-of-order", "Philosophies de l'Ordre", "Ordre", "Fontaine", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Order_Materials_Genshin_Impact.png"],
-  ["philosophies-of-contention", "Philosophies de la Contestation", "Contestation", "Natlan", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Contention_Materials_Genshin_Impact.png"],
-  ["philosophies-of-kindling", "Philosophies de l'Embrasement", "Embrasement", "Natlan", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Kindling_Materials_Genshin_Impact.png"],
-  ["philosophies-of-conflict", "Philosophies du Conflit", "Conflit", "Natlan", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Conflict_Materials_Genshin_Impact.png"],
-  ["philosophies-of-moonlight", "Philosophies de la Lueur lunaire", "Lueur lunaire", "Nod-Krai", ["Lundi","Jeudi","Dimanche"], "Philosophies_of_Moonlight_Materials_Genshin_Impact.png"],
-  ["philosophies-of-elysium", "Philosophies de l'Élysée", "Élysée", "Nod-Krai", ["Mardi","Vendredi","Dimanche"], "Philosophies_of_Elysium_Materials_Genshin_Impact.png"],
-  ["philosophies-of-vagrancy", "Philosophies de l'Errance", "Errance", "Nod-Krai", ["Mercredi","Samedi","Dimanche"], "Philosophies_of_Vagrancy_Materials_Genshin_Impact.png"]
-].map(([id,name,family,region,farmingDays,imageFile]) => ({
-  kind: "material", key: id, id, name, family, region, rarity: 4,
-  farmingDays,
-  // Special:FilePath redirige vers l'image réelle de l'article wiki, plutôt que vers un faux chemin d'API.
-  img: `https://genshin-impact.fandom.com/wiki/Special:FilePath/${encodeURIComponent(imageFile)}`,
-  domain: ({Mondstadt:"Gorge de l'oubli",Liyue:"Manoir Taishan",Inazuma:"Cour violette",Sumeru:"Tour de l'ignorance",Fontaine:"Gloire pâlie",Natlan:"Ruines flamboyantes","Nod-Krai":"Capitale sans lumière"})[region]
-}));
+/* Matériaux d'aptitude : chargés depuis materiaux.json */
 async function loadMaterials() {
-  state.materials = TALENT_BOOKS;
-  el("materialStatus").textContent = `${state.materials.length} matériaux d'aptitude (palier Philosophies, 4★) chargés.`;
-  renderCatalog();
+  try {
+    const response = await fetch("./materiaux.json", { cache: "no-cache" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error("Le JSON doit contenir une liste de matériaux.");
+    state.materials = data.map(item => ({
+      ...item,
+      kind: "material",
+      key: item.id,
+      img: item.image ? `./${item.image}` : "",
+      farmingDays: Array.isArray(item.days) ? item.days : []
+    }));
+    el("materialStatus").textContent = `${state.materials.length} matériaux d'aptitude chargés depuis materiaux.json.`;
+  } catch (error) {
+    state.materials = [];
+    el("materialStatus").textContent = "Impossible de charger materiaux.json. Vérifie que le fichier est dans le même dossier que index.html et app.js.";
+    console.error("Erreur de chargement de materiaux.json :", error);
+  }
+  if (state.category === "materials") renderCatalog();
   renderPlanner();
 }
 function currentItems() { return state.category==="artifacts"?state.artifacts:state.materials; }

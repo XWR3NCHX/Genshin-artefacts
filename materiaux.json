@@ -1,0 +1,275 @@
+[
+  {
+    "id": "philosophies-of-freedom",
+    "name": "Philosophies de la Liberté",
+    "family": "Liberté",
+    "region": "Mondstadt",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-freedom.png"
+  },
+  {
+    "id": "philosophies-of-resistance",
+    "name": "Philosophies de la Résistance",
+    "family": "Résistance",
+    "region": "Mondstadt",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-resistance.png"
+  },
+  {
+    "id": "philosophies-of-ballad",
+    "name": "Philosophies de la Ballade",
+    "family": "Ballade",
+    "region": "Mondstadt",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-ballad.png"
+  },
+  {
+    "id": "philosophies-of-prosperity",
+    "name": "Philosophies de la Prospérité",
+    "family": "Prospérité",
+    "region": "Liyue",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-prosperity.png"
+  },
+  {
+    "id": "philosophies-of-diligence",
+    "name": "Philosophies de la Diligence",
+    "family": "Diligence",
+    "region": "Liyue",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-diligence.png"
+  },
+  {
+    "id": "philosophies-of-gold",
+    "name": "Philosophies de l'Or",
+    "family": "Or",
+    "region": "Liyue",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-gold.png"
+  },
+  {
+    "id": "philosophies-of-transience",
+    "name": "Philosophies de l'Éphémère",
+    "family": "Éphémère",
+    "region": "Inazuma",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-transience.png"
+  },
+  {
+    "id": "philosophies-of-elegance",
+    "name": "Philosophies de l'Élégance",
+    "family": "Élégance",
+    "region": "Inazuma",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-elegance.png"
+  },
+  {
+    "id": "philosophies-of-light",
+    "name": "Philosophies de la Lumière",
+    "family": "Lumière",
+    "region": "Inazuma",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-light.png"
+  },
+  {
+    "id": "philosophies-of-admonition",
+    "name": "Philosophies de l'Admonestation",
+    "family": "Admonestation",
+    "region": "Sumeru",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-admonition.png"
+  },
+  {
+    "id": "philosophies-of-ingenuity",
+    "name": "Philosophies de l'Ingéniosité",
+    "family": "Ingéniosité",
+    "region": "Sumeru",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-ingenuity.png"
+  },
+  {
+    "id": "philosophies-of-praxis",
+    "name": "Philosophies de la Praxis",
+    "family": "Praxis",
+    "region": "Sumeru",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-praxis.png"
+  },
+  {
+    "id": "philosophies-of-equity",
+    "name": "Philosophies de l'Équité",
+    "family": "Équité",
+    "region": "Fontaine",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-equity.png"
+  },
+  {
+    "id": "philosophies-of-justice",
+    "name": "Philosophies de la Justice",
+    "family": "Justice",
+    "region": "Fontaine",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-justice.png"
+  },
+  {
+    "id": "philosophies-of-order",
+    "name": "Philosophies de l'Ordre",
+    "family": "Ordre",
+    "region": "Fontaine",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-order.png"
+  },
+  {
+    "id": "philosophies-of-contention",
+    "name": "Philosophies de la Contestation",
+    "family": "Contestation",
+    "region": "Natlan",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-contention.png"
+  },
+  {
+    "id": "philosophies-of-kindling",
+    "name": "Philosophies de l'Embrasement",
+    "family": "Embrasement",
+    "region": "Natlan",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-kindling.png"
+  },
+  {
+    "id": "philosophies-of-conflict",
+    "name": "Philosophies du Conflit",
+    "family": "Conflit",
+    "region": "Natlan",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-conflict.png"
+  },
+  {
+    "id": "philosophies-of-moonlight",
+    "name": "Philosophies de la Lueur lunaire",
+    "family": "Lueur lunaire",
+    "region": "Nod-Krai",
+    "rarity": 4,
+    "days": [
+      "Lundi",
+      "Jeudi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-moonlight.png"
+  },
+  {
+    "id": "philosophies-of-elysium",
+    "name": "Philosophies de l'Élysée",
+    "family": "Élysée",
+    "region": "Nod-Krai",
+    "rarity": 4,
+    "days": [
+      "Mardi",
+      "Vendredi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-elysium.png"
+  },
+  {
+    "id": "philosophies-of-vagrancy",
+    "name": "Philosophies de l'Errance",
+    "family": "Errance",
+    "region": "Nod-Krai",
+    "rarity": 4,
+    "days": [
+      "Mercredi",
+      "Samedi",
+      "Dimanche"
+    ],
+    "image": "philosophies-of-vagrancy.png"
+  }
+]

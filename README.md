@@ -16,3 +16,6 @@ Publie le contenu de ce dossier sur GitHub Pages ou ouvre `index.html` via un se
 Les catalogues sont récupérés auprès d'API communautaires. Leur disponibilité et leurs champs peuvent changer ; une connexion Internet est nécessaire.
 
 Projet non officiel, non affilié à HoYoverse.
+
+## Noms des images des matériaux
+Chaque image doit être au format PNG et porter exactement le nom indiqué dans la colonne `image` de `materiaux.json` (ex. `philosophies-of-freedom.png`). Les noms doivent être en minuscules, sans accents ni espaces.
