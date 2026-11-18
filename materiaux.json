@@ -283,7 +283,7 @@
       "Jeudi",
       "Dimanche"
     ],
-    "image": "philosophies-of-charity.png"
+    "image": "philosophies-of-Charity.png"
   },
   {
     "id": "philosophies-of-fortitude",
@@ -296,7 +296,7 @@
       "Vendredi",
       "Dimanche"
     ],
-    "image": "philosophies-of-fortitude.png"
+    "image": "philosophies-of-Fortitude.png"
   },
   {
     "id": "philosophies-of-glory",
@@ -309,6 +309,6 @@
       "Samedi",
       "Dimanche"
     ],
-    "image": "philosophies-of-glory.png"
+    "image": "philosophies-of-Glory.png"
   }
 ]
