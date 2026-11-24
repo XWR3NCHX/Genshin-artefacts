@@ -1,0 +1,263 @@
+
+[
+  {
+    "id": "stormterror",
+    "name": "Dvalin",
+    "location": "Antre de Stormterror — Mondstadt",
+    "image": "images/bosses/dvalin.png",
+    "drops": [
+      {
+        "id": "dvalin-plume",
+        "name": "Plume de Dvalin",
+        "image": "images/boss-drops/plume-dvalin.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "dvalin-soupir",
+        "name": "Soupir de Dvalin",
+        "image": "images/boss-drops/soupir-dvalin.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "dvalin-griffe",
+        "name": "Griffe de Dvalin",
+        "image": "images/boss-drops/griffe-dvalin.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "andrius",
+    "name": "Loup du Nord — Andrius",
+    "location": "Royaume des loups — Mondstadt",
+    "image": "images/bosses/andrius.png",
+    "drops": [
+      {
+        "id": "andrius-queue",
+        "name": "Queue de Borée",
+        "image": "images/boss-drops/queue-boree.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "andrius-anneau",
+        "name": "Anneau de Borée",
+        "image": "images/boss-drops/anneau-boree.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "andrius-esprit",
+        "name": "Esprit de Borée",
+        "image": "images/boss-drops/esprit-boree.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "tartaglia",
+    "name": "Tartaglia",
+    "location": "Maison Dorée — Liyue",
+    "image": "images/bosses/tartaglia.png",
+    "drops": [
+      {
+        "id": "tartaglia-ame",
+        "name": "Éclat d'âme putréfiée",
+        "image": "images/boss-drops/eclat-ame-putrefiee.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "tartaglia-fragment",
+        "name": "Fragment d'héritage infecté",
+        "image": "images/boss-drops/fragment-heritage-infecte.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "tartaglia-ombre",
+        "name": "Ombre du guerrier",
+        "image": "images/boss-drops/ombre-guerrier.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "azhdaha",
+    "name": "Azhdaha",
+    "location": "Sous le dragon terrassé — Liyue",
+    "image": "images/bosses/azhdaha.png",
+    "drops": [
+      {
+        "id": "azhdaha-eclat",
+        "name": "Éclat de jade sanglant",
+        "image": "images/boss-drops/eclat-jade-sanglant.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "azhdaha-ecaille",
+        "name": "Écaille dorée",
+        "image": "images/boss-drops/ecaille-doree.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "azhdaha-couronne",
+        "name": "Couronne du seigneur-dragon",
+        "image": "images/boss-drops/couronne-seigneur-dragon.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "signora",
+    "name": "La Signora",
+    "location": "Île de Narukami — Inazuma",
+    "image": "images/bosses/signora.png",
+    "drops": [
+      {
+        "id": "signora-papillon",
+        "name": "Papillon infernal",
+        "image": "images/boss-drops/papillon-infernal.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "signora-coeur",
+        "name": "Cœur des cendres",
+        "image": "images/boss-drops/coeur-cendres.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "signora-rosée",
+        "name": "Rosée de fonte",
+        "image": "images/boss-drops/rosee-fonte.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "raiden",
+    "name": "Raiden Shogun",
+    "location": "Fin de l'euthymie onirique — Inazuma",
+    "image": "images/bosses/raiden.png",
+    "drops": [
+      {
+        "id": "raiden-mudra",
+        "name": "Mudra de la maléfique générale",
+        "image": "images/boss-drops/mudra-malefique.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "raiden-larmes",
+        "name": "Larmes du dragonnière",
+        "image": "images/boss-drops/larmes-dragonniere.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "raiden-sagesse",
+        "name": "Sagesse de la maléfique générale",
+        "image": "images/boss-drops/sagesse-malefique.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "scaramouche",
+    "name": "Gardien de l'éternité",
+    "location": "Atelier Joururi — Sumeru",
+    "image": "images/bosses/scaramouche.png",
+    "drops": [
+      {
+        "id": "scaramouche-marionnette",
+        "name": "Cordes de marionnette",
+        "image": "images/boss-drops/cordes-marionnette.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "scaramouche-miroir",
+        "name": "Miroir de Mushin",
+        "image": "images/boss-drops/miroir-mushin.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "scaramouche-cloche",
+        "name": "Cloche de Daka",
+        "image": "images/boss-drops/cloche-daka.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "apeps",
+    "name": "Gardien de l'oasis d'Apep",
+    "location": "Royaume des commencements — Sumeru",
+    "image": "images/bosses/apeps.png",
+    "drops": [
+      {
+        "id": "apeps-fleur",
+        "name": "Fleur de l'oasis primordiale",
+        "image": "images/boss-drops/fleur-oasis-primordiale.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "apeps-fougère",
+        "name": "Fougère verdoyante",
+        "image": "images/boss-drops/fougere-verdoyante.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "apeps-ambre",
+        "name": "Ambre éternel",
+        "image": "images/boss-drops/ambre-eternel.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "all-devouring-narwhal",
+    "name": "Narval dévoreur",
+    "location": "Ombre d'un autre monde — Fontaine",
+    "image": "images/bosses/narval.png",
+    "drops": [
+      {
+        "id": "narval-corail",
+        "name": "Corail primordial",
+        "image": "images/boss-drops/corail-primordial.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "narval-fragment",
+        "name": "Fragment d'une mélodie dorée",
+        "image": "images/boss-drops/fragment-melodie-doree.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "narval-masse",
+        "name": "Masse sans lumière",
+        "image": "images/boss-drops/masse-sans-lumiere.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  },
+  {
+    "id": "knave",
+    "name": "Arlecchino",
+    "location": "Ruines de la cité de Nostoi — Fontaine",
+    "image": "images/bosses/arlecchino.png",
+    "drops": [
+      {
+        "id": "arlecchino-plume",
+        "name": "Plume de la légion",
+        "image": "images/boss-drops/plume-legion.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "arlecchino-soie",
+        "name": "Soie de la légion",
+        "image": "images/boss-drops/soie-legion.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
+        "id": "arlecchino-fleur",
+        "name": "Fleur de la légion",
+        "image": "images/boss-drops/fleur-legion.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      }
+    ]
+  }
+]
