@@ -5,15 +5,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#111827">
-  <meta name="description" content="Catalogue et planificateur de farm Genshin Impact.">
-  <title>Genshin Impact — Catalogue & Planificateur</title>
+  <meta name="description" content="Catalogue et planificateur de farm Genshin Impact">
+  <title>Teyvat — Catalogue et Planificateur</title>
+
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
 
 <body>
+
+  <!-- EN-TÊTE -->
   <header class="site-header">
     <div class="header-inner">
+
       <a class="brand" href="#" aria-label="Accueil">
         <span class="brand-mark">✦</span>
         <span>
@@ -23,35 +27,65 @@
       </a>
 
       <nav class="main-nav" aria-label="Navigation principale">
-        <button class="tab active" data-view="catalogue" type="button">
+        <button
+          class="tab active"
+          data-view="catalogue"
+          type="button"
+        >
           Catalogue
         </button>
-        <button class="tab" data-view="planif" type="button">
+
+        <button
+          class="tab"
+          data-view="planif"
+          type="button"
+        >
           Planificateur
           <span id="wishlistCount" class="nav-count">0</span>
         </button>
       </nav>
+
     </div>
   </header>
 
+
+  <!-- CONTENU PRINCIPAL -->
   <main class="page-shell">
+
+    <!-- BANNIÈRE -->
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">EXPLOREZ • COLLECTIONNEZ • PLANIFIEZ</p>
-        <h1>Votre aventure à <span>Teyvat</span></h1>
+
+        <h1>
+          Votre aventure à <span>Teyvat</span>
+        </h1>
+
         <p>
           Retrouvez vos artéfacts, matériaux et boss hebdomadaires,
           puis organisez vos sessions de farm.
         </p>
       </div>
-      <div class="hero-decoration" aria-hidden="true">✧</div>
+
+      <div class="hero-decoration" aria-hidden="true">
+        ✧
+      </div>
     </section>
 
+
+    <!-- =========================
+         VUE CATALOGUE
+    ========================== -->
     <section id="catalogueView">
+
       <div class="section-heading">
         <div>
           <p class="eyebrow">VOTRE COLLECTION</p>
-          <h2 id="catalogueHeading">Artéfacts</h2>
+
+          <h2 id="catalogueHeading">
+            Artéfacts
+          </h2>
+
           <p id="catalogueDescription">
             Découvrez les ensembles d'artéfacts disponibles.
           </p>
@@ -63,7 +97,10 @@
         </div>
       </div>
 
+
+      <!-- CATÉGORIES -->
       <div class="category-tabs" role="tablist" aria-label="Catégories">
+
         <button
           class="category-tab active"
           data-category="artifacts"
@@ -71,6 +108,7 @@
         >
           Artéfacts
         </button>
+
         <button
           class="category-tab"
           data-category="materials"
@@ -78,6 +116,7 @@
         >
           Matériaux
         </button>
+
         <button
           class="category-tab"
           data-category="bosses"
@@ -85,20 +124,28 @@
         >
           Boss hebdomadaires
         </button>
+
       </div>
 
+
+      <!-- RECHERCHE ET FILTRES -->
       <div class="catalogue-controls">
+
         <label class="search-box">
           <span aria-hidden="true">⌕</span>
+
           <input
             id="searchInput"
             type="search"
-            placeholder="Rechercher..."
+            placeholder="Rechercher un élément..."
             autocomplete="off"
           >
         </label>
 
-        <select id="rarityFilter" aria-label="Filtrer par rareté">
+        <select
+          id="rarityFilter"
+          aria-label="Filtrer par rareté"
+        >
           <option value="all">Toutes les raretés</option>
           <option value="5">5 étoiles</option>
           <option value="4">4 étoiles</option>
@@ -106,78 +153,135 @@
           <option value="2">2 étoiles</option>
           <option value="1">1 étoile</option>
         </select>
+
       </div>
 
+
+      <!-- GRILLE UNIQUE POUR LES TROIS CATÉGORIES -->
       <div id="artifactGrid" class="artifact-grid"></div>
 
+
+      <!-- AUCUN RÉSULTAT -->
       <div id="emptyState" class="empty-state" hidden>
         <span aria-hidden="true">✧</span>
+
         <h3>Aucun résultat</h3>
-        <p>Essaie avec un autre nom ou modifie les filtres.</p>
+
+        <p>
+          Essaie avec un autre nom ou modifie les filtres.
+        </p>
       </div>
+
     </section>
 
+
+    <!-- =========================
+         VUE PLANIFICATEUR
+    ========================== -->
     <section id="planifView" hidden>
+
       <div class="section-heading">
         <div>
           <p class="eyebrow">ORGANISEZ VOTRE FARM</p>
+
           <h2>Mon planificateur</h2>
+
           <p>
-            Répartissez vos éléments à récupérer sur les jours de la semaine.
+            Répartissez vos éléments à récupérer sur les jours
+            de la semaine.
           </p>
         </div>
 
-        <button id="backToCatalog" class="button button-quiet" type="button">
+        <button
+          id="backToCatalog"
+          class="button button-quiet"
+          type="button"
+        >
           ← Retour au catalogue
         </button>
       </div>
 
+
+      <!-- BARRE D'ACTIONS -->
       <div class="planner-toolbar">
+
         <div>
           <strong>Ma liste de souhaits</strong>
           <p id="plannerSummary">0 élément sélectionné</p>
         </div>
 
         <div class="planner-actions">
-          <button id="showWishlist" class="button" type="button">
+
+          <button
+            id="showWishlist"
+            class="button"
+            type="button"
+          >
             Voir ma liste
           </button>
-          <button id="clearWishlist" class="button button-quiet" type="button">
+
+          <button
+            id="clearWishlist"
+            class="button button-quiet"
+            type="button"
+          >
             Tout effacer
           </button>
+
         </div>
+
       </div>
 
+
+      <!-- PLANIFICATEUR VIDE -->
       <div id="plannerEmpty" class="empty-state">
+
         <span aria-hidden="true">✧</span>
+
         <h3>Ton planificateur est vide</h3>
+
         <p>
-          Ajoute des artéfacts, matériaux ou drops de boss depuis le catalogue.
+          Ajoute des artéfacts, matériaux ou drops de boss
+          depuis le catalogue.
         </p>
-        <button id="backToCatalog" class="button" type="button">
-          Explorer le catalogue
-        </button>
+
       </div>
 
+
+      <!-- PLANIFICATEUR REMPLI -->
       <div id="planner" hidden>
+
+        <!-- Liste des éléments sélectionnés -->
         <div class="planner-choices"></div>
+
+        <!-- Planning de la semaine -->
         <div class="planner-week">
+
           <div class="planner-week-grid"></div>
+
         </div>
+
       </div>
 
+      <!-- Compteur secondaire utilisé par le JavaScript -->
       <span id="wishlistCount2" hidden>0</span>
+
     </section>
+
   </main>
 
-  <footer class="site-footer">
-    <p>Projet fan-made non officiel consacré à Genshin Impact.</p>
-    <p>Genshin Impact est une marque de HoYoverse.</p>
-  </footer>
 
+  <!-- =========================
+       FENÊTRE DE DÉTAILS
+  ========================== -->
   <dialog id="detailDialog" class="detail-dialog">
+
     <div class="dialog-topbar">
-      <span class="eyebrow">DÉTAILS</span>
+
+      <span class="eyebrow">
+        DÉTAILS
+      </span>
+
       <button
         id="closeDialog"
         class="dialog-close"
@@ -186,8 +290,26 @@
       >
         ✕
       </button>
+
     </div>
+
     <div id="detailContent"></div>
+
   </dialog>
+
+
+  <!-- PIED DE PAGE -->
+  <footer class="site-footer">
+
+    <p>
+      Projet fan-made non officiel consacré à Genshin Impact.
+    </p>
+
+    <p>
+      Genshin Impact est une marque de HoYoverse.
+    </p>
+
+  </footer>
+
 </body>
 </html>
