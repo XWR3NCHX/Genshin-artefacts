@@ -1,1019 +1,1062 @@
+const API_BASE = "https://genshin-impact.up.railway.app";
+const STORAGE_KEY = "genshin-artefacts-wishlist-v1";
+const PLAN_STORAGE_KEY = "genshin-artefacts-days-v1";
 
-"use strict";
+const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
-/* =====================================================
-   CONFIGURATION
-===================================================== */
-
-const DATA_FILES = {
-  materials: "./materiaux.json",
-  bosses: "./boss_hebdomadaires.json"
+const EN_DAYS = {
+  Monday: "Lundi", Tuesday: "Mardi", Wednesday: "Mercredi",
+  Thursday: "Jeudi", Friday: "Vendredi", Saturday: "Samedi",
+  Sunday: "Dimanche",
+  monday: "Lundi", tuesday: "Mardi", wednesday: "Mercredi",
+  thursday: "Jeudi", friday: "Vendredi", saturday: "Samedi",
+  sunday: "Dimanche"
 };
 
-const ARTIFACT_API =
-  "https://genshin.jmp.blue/artifacts/all?lang=fr";
-
-const DAYS = [
-  "Lundi",
-  "Mardi",
-  "Mercredi",
-  "Jeudi",
-  "Vendredi",
-  "Samedi",
-  "Dimanche"
-];
-
-const STORAGE_KEYS = {
-  wishlist: "teyvat_wishlist_v3",
-  planner: "teyvat_planner_v3"
+const state = {
+  artifacts: [],
+  materials: [],
+  bosses: [],
+  bossDrops: [],
+  wishlist: new Set(),
+  farmDays: {},
+  view: "catalogue",
+  category: "artifacts",
+  selected: null
 };
 
-/* =====================================================
-   ÉTAT
-===================================================== */
+const el = id => document.getElementById(id);
 
-let currentCategory = "artifacts";
-let currentView = "catalogue";
-
-let artifacts = [];
-let materials = [];
-let bosses = [];
-
-let wishlist = loadStorage(STORAGE_KEYS.wishlist, []);
-let planner = loadStorage(STORAGE_KEYS.planner, {});
-
-/* =====================================================
-   OUTILS
-===================================================== */
-
-function el(id) {
-  return document.getElementById(id);
-}
-
-function loadStorage(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch (error) {
-    console.warn("Erreur de lecture du stockage :", error);
-    return fallback;
-  }
-}
-
-function saveStorage() {
-  try {
-    localStorage.setItem(
-      STORAGE_KEYS.wishlist,
-      JSON.stringify(wishlist)
-    );
-
-    localStorage.setItem(
-      STORAGE_KEYS.planner,
-      JSON.stringify(planner)
-    );
-  } catch (error) {
-    console.warn("Erreur de sauvegarde :", error);
-  }
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, character => ({
+const escapeHtml = (value = "") =>
+  String(value).replace(/[&<>"']/g, ch => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
-    "'": "&#039;"
-  })[character]);
-}
+    "'": "&#39;"
+  }[ch]));
 
-function getName(item) {
-  return item.name || item.nom || item.title || "Élément inconnu";
-}
+const normalize = (value = "") =>
+  String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-function getImage(item) {
-  return item.image || item.img || item.icon || "";
-}
 
-function getKey(item) {
-  if (item.kind === "bossdrop") {
-    return `bossdrop:${item.bossId}:${item.id}`;
+/* =========================
+   SAUVEGARDE
+========================= */
+
+function loadWishlist() {
+  try {
+    state.wishlist = new Set(
+      JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").map(String)
+    );
+  } catch {
+    state.wishlist = new Set();
   }
 
-  return `${item.kind}:${item.id || getName(item)}`;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PLAN_STORAGE_KEY) || "{}");
+
+    state.farmDays =
+      saved && typeof saved === "object" && !Array.isArray(saved)
+        ? saved
+        : {};
+
+    Object.keys(state.farmDays).forEach(key => {
+      state.farmDays[key] = Array.isArray(state.farmDays[key])
+        ? [...new Set(state.farmDays[key].filter(day => DAYS.includes(day)))]
+        : [];
+    });
+  } catch {
+    state.farmDays = {};
+  }
 }
 
-function imageHTML(src, alt, className = "") {
-  if (!src) {
-    return `<div class="${className} image-fallback">✦</div>`;
+function saveWishlist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.wishlist]));
+  updateCounts();
+}
+
+function saveFarmDays() {
+  localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(state.farmDays));
+}
+
+function updateCounts() {
+  const count = state.wishlist.size;
+
+  if (el("wishlistCount")) el("wishlistCount").textContent = count;
+  if (el("wishlistCount2")) el("wishlistCount2").textContent = count;
+
+  if (el("plannerSummary")) {
+    el("plannerSummary").textContent = count
+      ? `${count} élément${count > 1 ? "s" : ""} dans ta liste.`
+      : "Aucun élément dans ta liste.";
   }
+}
+
+
+/* =========================
+   INFORMATIONS GÉNÉRALES
+========================= */
+
+function getName(x) {
+  return x.name || x.Name || x.title || x.key || "Élément";
+}
+
+function getKey(x) {
+  if (x.kind === "material") {
+    return `material:${String(x.key || x.id || getName(x))}`;
+  }
+
+  if (x.kind === "bossdrop") {
+    return `bossdrop:${x.bossId}:${x.id}`;
+  }
+
+  return String(x.key || x.slug || x.id || getName(x));
+}
+
+function getRarity(x) {
+  const value = x.rarity ?? x.Rarity ?? x.maxRarity ?? 5;
+
+  if (Array.isArray(value)) {
+    return Math.max(...value.map(Number).filter(Number.isFinite), 1);
+  }
+
+  if (typeof value === "string" && value.includes(",")) {
+    return Math.max(...value.split(",").map(Number).filter(Number.isFinite), 1);
+  }
+
+  return Number(value) || 1;
+}
+
+function getImage(x) {
+  return x.img ||
+    x.image ||
+    x.icon ||
+    x.Icon ||
+    x.iconUrl ||
+    x.images?.flower ||
+    x.pieces?.flower?.img ||
+    "";
+}
+
+function getDomain(x) {
+  return x.domain ||
+    x.Domain ||
+    x.source ||
+    x.obtain ||
+    x.obtainable ||
+    "Domaine d’artéfacts";
+}
+
+function normalizeDays(values) {
+  if (!Array.isArray(values)) return [];
+
+  return [...new Set(
+    values
+      .map(value => EN_DAYS[value] || EN_DAYS[String(value).toLowerCase()] || value)
+      .filter(value => DAYS.includes(value))
+  )];
+}
+
+function getAvailability(x) {
+  if (x.kind === "material") return x.farmingDays || [];
+  return normalizeDays(x.farmingDays || x.farming_days || x.days || x.availability || []);
+}
+
+function getPieces(item) {
+  const pieces = item.pieces || item.Pieces || {};
+
+  return [
+    ["flower", "Fleur"],
+    ["plume", "Plume"],
+    ["sands", "Sablier"],
+    ["goblet", "Coupe"],
+    ["circlet", "Couronne"]
+  ].map(([key, label]) => {
+    const piece = pieces[key] || pieces[label.toLowerCase()] || {};
+
+    return {
+      label,
+      name: piece.name || piece.Name || "",
+      img: piece.img || piece.image || "",
+      description: piece.description || piece.Description || ""
+    };
+  }).filter(piece => piece.name || piece.img || piece.description);
+}
+
+
+/* =========================
+   DOMAINES D'ARTÉFACTS
+========================= */
+
+const DOMAIN_INFO = [
+  { names: ["Midsummer Courtyard"], region: "Mondstadt", area: "Falaises Starsnatch", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Peak of Vindagnyr"], region: "Mondstadt", area: "Dosdragon", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Ridge Watch"], region: "Liyue", area: "Porte de Pierre", image: "https://img.gamewith.net/img/b3698d197329c2e55c1aa535b0c4beae.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Valley of Remembrance"], region: "Mondstadt", area: "Vignoble de l'Aube", image: "https://img.gamewith.net/img/5a64fca546783317536a96e0b73592b4.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Clear Pool and Mountain Cavern"], region: "Liyue", area: "Mont Aocang", image: "https://img.gamewith.net/img/b29ea616d9f890c1f028f08f74e4cd23.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Domain of Guyun"], region: "Liyue", area: "Forêt de pierres de Guyun", image: "https://img.gamewith.net/img/3666c676326833c032671321faf8a752.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Hidden Palace of Zhou Formula"], region: "Liyue", area: "Colline Wuwang", image: "https://img.gamewith.net/img/59bf860f7b9a4c5dfa6d819a4ba129be.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["The Lost Valley"], region: "Liyue", area: "Gouffre", image: "https://img.gamewith.net/img/7540f04434c4450b68356f25fc608648.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Momiji-Dyed Court"], region: "Inazuma", area: "Île Yashiori", image: "https://img.gamewith.net/img/27e857661fe27f7bbdf1f88bea05d6b4.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Slumbering Court"], region: "Inazuma", area: "Île Seirai", image: "https://img.gamewith.net/img/d2748b8bce3ac6da0fddf96d04cd4e47.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["City of Gold"], region: "Sumeru", area: "Désert de Sumeru", image: "https://img.gamewith.net/img/c5f8e060022fdc30050ec109b9c2acfd.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Molten Iron Fortress"], region: "Sumeru", area: "Gavireh Lajavard", image: "https://img.gamewith.net/img/f8b13e7c4a871a2bbbb6ab70ce6bb24f.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Spire of Solitary Enlightenment"], region: "Sumeru", area: "Colline Gandha", image: "https://img.gamewith.net/img/2c79ddbb90b6a2ae9fc1d7628f8fde03.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Denouement of Sin"], region: "Fontaine", area: "Région de Beryl", image: "https://img.gamewith.net/img/e10fac31e2bae644fb6fbc6d3de3ed83.jpg", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Faded Theater"], region: "Fontaine", area: "Pétrichor", image: "https://img.gamewith.net/img/7b7d843308aca574e54baea8081be1c9.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Waterfall Wen"], region: "Fontaine", area: "Versant Est du Mont Automnéqui", image: "https://img.gamewith.net/img/316ba51c4733ec3cf757e46fac396896.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Sanctum of Rainbow Spirits"], region: "Natlan", area: "Eaux d'Ameyalco", image: "https://img.gamewith.net/img/962b95b50cd3ccf215240dd5201336da.png", map: "https://gamewith.net/genshin-impact/article/show/22392" },
+  { names: ["Moonchild's Treasures"], region: "Nod-Krai", area: "Pic Ashveil", image: "", map: "https://gamewith.net/genshin-impact/article/show/22392" }
+];
+
+const SET_DOMAIN = {
+  "thundering fury": "Midsummer Courtyard",
+  "thundersoother": "Midsummer Courtyard",
+  "blizzard strayer": "Peak of Vindagnyr",
+  "heart of depth": "Peak of Vindagnyr",
+  "tenacity of the millelith": "Ridge Watch",
+  "pale flame": "Ridge Watch",
+  "viridescent venerer": "Valley of Remembrance",
+  "maiden beloved": "Valley of Remembrance",
+  "bloodstained chivalry": "Clear Pool and Mountain Cavern",
+  "noblesse oblige": "Clear Pool and Mountain Cavern",
+  "archaic petra": "Domain of Guyun",
+  "retracing bolide": "Domain of Guyun",
+  "lavawalker": "Hidden Palace of Zhou Formula",
+  "crimson witch of flames": "Hidden Palace of Zhou Formula",
+  "vermillion hereafter": "The Lost Valley",
+  "echoes of an offering": "The Lost Valley",
+  "shimenawa's reminiscence": "Momiji-Dyed Court",
+  "emblem of severed fate": "Momiji-Dyed Court",
+  "ocean-hued clam": "Slumbering Court",
+  "husk of opulent dreams": "Slumbering Court",
+  "desert pavilion chronicle": "City of Gold",
+  "flower of paradise lost": "City of Gold",
+  "vourukasha's glow": "Molten Iron Fortress",
+  "nymph's dream": "Molten Iron Fortress",
+  "deepwood memories": "Spire of Solitary Enlightenment",
+  "gilded dreams": "Spire of Solitary Enlightenment",
+  "golden troupe": "Denouement of Sin",
+  "marechaussee hunter": "Denouement of Sin",
+  "fragment of harmonic whimsy": "Faded Theater",
+  "unfinished reverie": "Faded Theater",
+  "nighttime whispers in the echoing woods": "Waterfall Wen",
+  "song of days past": "Waterfall Wen",
+  "obsidian codex": "Sanctum of Rainbow Spirits",
+  "scroll of the hero of cinder city": "Sanctum of Rainbow Spirits"
+};
+
+function getDomainInfo(item) {
+  const raw = normalize(getDomain(item));
+
+  let found = DOMAIN_INFO.find(domain =>
+    domain.names.some(name => raw.includes(normalize(name)))
+  );
+
+  if (!found) {
+    const name = normalize(getName(item));
+    const domainName = Object.entries(SET_DOMAIN)
+      .find(([set]) => name.includes(set))?.[1];
+
+    found = DOMAIN_INFO.find(domain =>
+      domainName && domain.names.includes(domainName)
+    );
+  }
+
+  return found || null;
+}
+
+function renderDomainLocation(item) {
+  const info = getDomainInfo(item);
+
+  if (!info) {
+    return `
+      <section class="domain-location">
+        <h3>Où farmer ce set ?</h3>
+        <p>Le domaine et sa région ne sont pas encore renseignés pour cet artéfact.</p>
+        <p class="domain-source">Source : ${escapeHtml(getDomain(item))}</p>
+      </section>
+    `;
+  }
+
+  const image = info.image
+    ? `<img class="domain-map-image" src="${escapeHtml(info.image)}" alt="Carte de localisation du domaine ${escapeHtml(info.names[0])}" loading="lazy" onerror="this.remove()">`
+    : `<div class="domain-map-placeholder">Image de carte à compléter</div>`;
 
   return `
-    <img
-      class="${className}"
-      src="${escapeHTML(src)}"
-      alt="${escapeHTML(alt)}"
-      loading="lazy"
-      onerror="this.style.display='none'"
-    >
+    <section class="domain-location">
+      <h3>Où farmer ce set ?</h3>
+      <div class="domain-location-meta">
+        <span><small>DOMAINE</small><strong>${escapeHtml(info.names[0])}</strong></span>
+        <span><small>RÉGION</small><strong>${escapeHtml(info.region)}</strong></span>
+        <span><small>SECTEUR</small><strong>${escapeHtml(info.area)}</strong></span>
+      </div>
+      <div class="domain-map-frame">${image}</div>
+      <a class="domain-map-link" href="${escapeHtml(info.map)}" target="_blank" rel="noopener noreferrer">
+        Ouvrir la carte de localisation
+      </a>
+    </section>
   `;
 }
 
-function getAvailability(item) {
-  if (item.kind === "bossdrop") return DAYS;
 
-  const days = item.days || item.farmingDays || [];
-
-  return Array.isArray(days) ? days : [];
-}
-
-function getItemByKey(key) {
-  return allItems().find(item => getKey(item) === key);
-}
-
-function allItems() {
-  return [
-    ...artifacts,
-    ...materials,
-    ...bossDropItems()
-  ];
-}
-
-/* =====================================================
+/* =========================
    CHARGEMENT DES DONNÉES
-===================================================== */
+========================= */
 
-async function fetchJSON(path) {
-  const response = await fetch(path);
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" }
+  });
 
-  if (!response.ok) {
-    throw new Error(`Impossible de charger ${path}`);
-  }
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   return response.json();
 }
 
-/* -----------------------------
-   ARTÉFACTS
------------------------------ */
+function unwrapList(payload, keys = []) {
+  if (Array.isArray(payload)) return payload;
+
+  for (const key of keys) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+
+  return [];
+}
+
+
+/* ARTÉFACTS : ON CONSERVE TON API D'ORIGINE */
 
 async function loadArtifacts() {
   try {
-    const data = await fetchJSON(ARTIFACT_API);
+    const payload = await fetchJson(
+      `${API_BASE}/artifacts?details=true&sort=name`
+    );
 
-    const list = Array.isArray(data)
-      ? data
-      : data.artifacts || data.items || [];
+    const list = unwrapList(payload, ["artifacts", "data", "results"]);
 
-    artifacts = list.map((item, index) => {
-      const slug = item.id || item.key || `artifact-${index}`;
+    if (!list.length) throw new Error("Catalogue vide");
 
-      return {
-        ...item,
-        id: slug,
-        kind: "artifact",
-        name: item.name || slug,
-        image: item.image || item.img || item.icon || "",
-        rarity: item.rarity || item.max_rarity || 5,
-        description:
-          item.description ||
-          item.bonus?.["2pc"] ||
-          item["2-piece_bonus"] ||
-          ""
-      };
-    });
+    state.artifacts = list.map((item, index) => ({
+      ...item,
+      kind: "artifact",
+      key: String(item.key || item.slug || item.id || item.name || `artifact-${index}`),
+      name: getName(item)
+    }));
 
-    console.log(`${artifacts.length} artéfacts chargés.`);
+    if (el("artifactStatus")) {
+      el("artifactStatus").textContent =
+        `${state.artifacts.length} artéfacts chargés.`;
+    }
   } catch (error) {
     console.error("Erreur de chargement des artéfacts :", error);
-    artifacts = [];
+    state.artifacts = [];
+
+    if (el("artifactStatus")) {
+      el("artifactStatus").textContent =
+        "Impossible de charger les artéfacts depuis l'API. Vérifie ta connexion ou réessaie plus tard.";
+    }
   }
+
+  renderCatalog();
+  renderPlanner();
 }
 
-/* -----------------------------
-   MATÉRIAUX
------------------------------ */
+
+/* MATÉRIAUX */
 
 async function loadMaterials() {
   try {
-    const data = await fetchJSON(DATA_FILES.materials);
+    const response = await fetch("./materiaux.json", {
+      cache: "no-cache"
+    });
 
-    const list = Array.isArray(data)
-      ? data
-      : data.materials || data.items || [];
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    materials = list.map((item, index) => ({
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Le JSON doit contenir une liste de matériaux.");
+    }
+
+    state.materials = data.map(item => ({
       ...item,
-      id: item.id || `material-${index}`,
       kind: "material",
-      image: item.image
-        ? `./${item.image.replace(/^\.?\//, "")}`
-        : "",
-      name: item.name || item.nom || "Matériau inconnu",
-      rarity: item.rarity || 4,
-      days: item.days || []
+      key: item.id,
+      img: item.image ? `./${item.image}` : "",
+      farmingDays: Array.isArray(item.days) ? item.days : []
     }));
 
-    console.log(`${materials.length} matériaux chargés.`);
+    if (el("materialStatus")) {
+      el("materialStatus").textContent =
+        `${state.materials.length} matériaux d'aptitude chargés depuis materiaux.json.`;
+    }
   } catch (error) {
+    state.materials = [];
+
+    if (el("materialStatus")) {
+      el("materialStatus").textContent =
+        "Impossible de charger materiaux.json. Vérifie que le fichier est dans le même dossier que index.html et app.js.";
+    }
+
     console.error("Erreur de chargement des matériaux :", error);
-    materials = [];
   }
+
+  if (state.category === "materials") renderCatalog();
+
+  renderPlanner();
 }
 
-/* -----------------------------
-   BOSS HEBDOMADAIRES
------------------------------ */
+
+/* BOSS HEBDOMADAIRES */
 
 async function loadBosses() {
   try {
-    const data = await fetchJSON(DATA_FILES.bosses);
+    const response = await fetch("./boss_hebdomadaires.json", {
+      cache: "no-cache"
+    });
 
-    const list = Array.isArray(data)
-      ? data
-      : data.bosses || [];
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    bosses = list.map((boss, index) => ({
-      ...boss,
-      id: boss.id || `boss-${index}`,
-      name: boss.name || boss.nom || "Boss inconnu",
-      image: boss.image
-        ? `./${boss.image.replace(/^\.?\//, "")}`
-        : "",
-      drops: (boss.drops || []).map((drop, dropIndex) => ({
-        ...drop,
-        id: drop.id || `drop-${index}-${dropIndex}`,
-        image: drop.image
-          ? `./${drop.image.replace(/^\.?\//, "")}`
-          : ""
-      }))
-    }));
+    const data = await response.json();
 
-    console.log(`${bosses.length} boss chargés.`);
-  } catch (error) {
-    console.error("Erreur de chargement des boss :", error);
-    bosses = [];
-  }
-}
+    if (!Array.isArray(data)) {
+      throw new Error("Le JSON des boss doit contenir une liste.");
+    }
 
-function bossDropItems() {
-  const result = [];
+    state.bosses = data;
 
-  bosses.forEach(boss => {
-    boss.drops.forEach(drop => {
-      result.push({
+    state.bossDrops = data.flatMap(boss =>
+      (boss.drops || []).map(drop => ({
         ...drop,
         kind: "bossdrop",
         bossId: boss.id,
         bossName: boss.name,
+        bossLocation: boss.location,
         bossImage: boss.image,
-        bossLocation: boss.location || "",
-        bossRegion: boss.region || "",
-        bossDrops: boss.drops
-      });
-    });
-  });
-
-  return result;
-}
-
-/* =====================================================
-   NAVIGATION
-===================================================== */
-
-function setView(view) {
-  currentView = view;
-
-  if (el("catalogueView")) {
-    el("catalogueView").hidden = view !== "catalogue";
-  }
-
-  if (el("planifView")) {
-    el("planifView").hidden = view !== "planif";
-  }
-
-  document.querySelectorAll(".tab").forEach(button => {
-    button.classList.toggle(
-      "active",
-      button.dataset.view === view
+        key: `bossdrop:${boss.id}:${drop.id}`,
+        img: drop.image ? `./${drop.image}` : ""
+      }))
     );
-  });
 
-  if (view === "planif") {
-    renderPlanner();
+    if (el("bossStatus")) {
+      el("bossStatus").textContent =
+        `${state.bosses.length} boss et ${state.bossDrops.length} drops chargés.`;
+    }
+  } catch (error) {
+    state.bosses = [];
+    state.bossDrops = [];
+
+    if (el("bossStatus")) {
+      el("bossStatus").textContent =
+        "Impossible de charger boss_hebdomadaires.json. Vérifie que le fichier est présent.";
+    }
+
+    console.error("Erreur de chargement des boss :", error);
   }
+
+  if (state.category === "bosses") renderCatalog();
+
+  renderPlanner();
 }
 
-function setCategory(category) {
-  currentCategory = category;
 
-  document.querySelectorAll(".category-tab").forEach(button => {
-    button.classList.toggle(
-      "active",
-      button.dataset.category === category
-    );
-  });
-
-  const headings = {
-    artifacts: [
-      "Artéfacts",
-      "Découvrez les ensembles d'artéfacts disponibles."
-    ],
-    materials: [
-      "Matériaux",
-      "Retrouvez les matériaux nécessaires à votre progression."
-    ],
-    bosses: [
-      "Boss hebdomadaires",
-      "Choisissez les récompenses des boss à récupérer."
-    ]
-  };
-
-  if (el("catalogueHeading")) {
-    el("catalogueHeading").textContent = headings[category][0];
-  }
-
-  if (el("catalogueDescription")) {
-    el("catalogueDescription").textContent = headings[category][1];
-  }
-
-  if (el("rarityFilter")) {
-    el("rarityFilter").hidden = category === "bosses";
-    el("rarityFilter").value = "all";
-  }
-
-  if (el("searchInput")) {
-    el("searchInput").value = "";
-  }
-
-  renderCatalog();
-}
-
-/* =====================================================
+/* =========================
    CATALOGUE
-===================================================== */
+========================= */
+
+function allItems() {
+  return [
+    ...state.artifacts,
+    ...state.materials,
+    ...state.bossDrops
+  ];
+}
 
 function currentItems() {
-  if (currentCategory === "materials") return materials;
-  if (currentCategory === "bosses") return bossDropItems();
-
-  return artifacts;
+  if (state.category === "materials") return state.materials;
+  if (state.category === "bosses") return state.bossDrops;
+  return state.artifacts;
 }
 
 function filteredItems() {
-  const search = (
-    el("searchInput")?.value || ""
-  ).toLowerCase().trim();
-
-  const rarity = el("rarityFilter")?.value || "all";
+  const query = normalize(el("searchInput").value.trim());
+  const rarity = el("rarityFilter").value;
 
   return currentItems().filter(item => {
-    const name = getName(item).toLowerCase();
+    const searchText = normalize(
+      `${item.name} ${getDomain(item)} ${item.region || ""} ${item.bossName || ""} ${item.bossLocation || ""}`
+    );
 
-    const matchesSearch =
-      !search ||
-      name.includes(search) ||
-      String(item.description || "").toLowerCase().includes(search) ||
-      String(item.bossName || "").toLowerCase().includes(search);
-
-    const itemRarity = String(
-      item.rarity || item.stars || ""
-    ).replace("★", "").trim();
-
+    const matchesSearch = !query || searchText.includes(query);
     const matchesRarity =
-      currentCategory !== "artifacts" ||
-      rarity === "all" ||
-      itemRarity === rarity;
+      rarity === "all" || getRarity(item) === Number(rarity);
 
     return matchesSearch && matchesRarity;
   });
 }
 
+function imageMarkup(src, name, cls = "") {
+  return src
+    ? `
+      <img class="${cls}" src="${escapeHtml(src)}"
+        alt="${escapeHtml(name)}"
+        loading="lazy"
+        onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+      <span class="fallback" hidden>✦</span>
+    `
+    : `<div class="fallback ${cls}" aria-label="${escapeHtml(name)}">✦</div>`;
+}
+
 function renderCatalog() {
-  const grid = el("artifactGrid");
-  if (!grid) return;
+  if (!el("artifactGrid")) return;
 
   const items = filteredItems();
 
-  if (el("setCount")) {
-    el("setCount").textContent = items.length;
+  el("setCount").textContent = currentItems().length || "—";
+
+  const statLabel = document.querySelector(".stat-card small");
+
+  if (statLabel) {
+    if (state.category === "artifacts") {
+      statLabel.textContent = "artéfacts chargés";
+    } else if (state.category === "materials") {
+      statLabel.textContent = "livres chargés";
+    } else {
+      statLabel.textContent = "drops de boss chargés";
+    }
   }
 
-  if (el("emptyState")) {
-    el("emptyState").hidden = items.length > 0;
-  }
-
-  grid.innerHTML = items.map(item => {
+  el("artifactGrid").innerHTML = items.map(item => {
     const key = getKey(item);
-    const name = getName(item);
-    const selected = wishlist.includes(key);
-    const rarity = Number(item.rarity || 0);
-    const domain =
-      item.domain ||
-      item.location ||
-      item.bossName ||
-      item.region ||
-      "";
+    const wished = state.wishlist.has(key);
+    const rarity = getRarity(item);
+    const availability = getAvailability(item);
 
-    return `
-      <article class="artifact-card">
+    let subtitle = "";
 
-        <button
-          class="wish-mark ${selected ? "selected" : ""}"
-          type="button"
-          data-action="wish"
-          data-key="${escapeHTML(key)}"
-          aria-label="${selected ? "Retirer" : "Ajouter"} à ma liste"
-        >
-          ${selected ? "♥" : "♡"}
-        </button>
-
-        <button
-          class="card-open"
-          type="button"
-          data-action="details"
-          data-key="${escapeHTML(key)}"
-        >
-
-          <div class="artifact-art">
-            ${imageHTML(getImage(item), name)}
-          </div>
-
-          <div class="card-copy">
-            <span class="rarity">
-              ${rarity ? "★".repeat(Math.min(rarity, 5)) : ""}
-            </span>
-
-            <h3>${escapeHTML(name)}</h3>
-
-            <p class="card-domain">
-              ${escapeHTML(domain)}
-            </p>
-          </div>
-
-        </button>
-      </article>
-    `;
-  }).join("");
-
-  updateCounts();
-}
-
-/* =====================================================
-   LISTE DE SOUHAITS
-===================================================== */
-
-function toggleWishlist(key) {
-  if (wishlist.includes(key)) {
-    removeWishlistItem(key);
-  } else {
-    wishlist.push(key);
-    saveStorage();
-  }
-
-  renderCatalog();
-  renderPlanner();
-}
-
-/*
-  Supprime UN élément de la liste et son affectation.
-  Les autres éléments ne sont pas touchés.
-*/
-
-function removeWishlistItem(key) {
-  wishlist = wishlist.filter(item => item !== key);
-
-  delete planner[key];
-
-  saveStorage();
-
-  renderCatalog();
-  renderPlanner();
-}
-
-function clearWishlist() {
-  if (!wishlist.length) return;
-
-  wishlist = [];
-  planner = {};
-
-  saveStorage();
-
-  renderCatalog();
-  renderPlanner();
-}
-
-function updateCounts() {
-  const count = wishlist.length;
-
-  if (el("wishlistCount")) {
-    el("wishlistCount").textContent = count;
-  }
-
-  if (el("wishlistCount2")) {
-    el("wishlistCount2").textContent = count;
-  }
-
-  if (el("plannerSummary")) {
-    el("plannerSummary").textContent =
-      `${count} élément${count > 1 ? "s" : ""} sélectionné${count > 1 ? "s" : ""}`;
-  }
-}
-
-/* =====================================================
-   DÉTAILS DES ARTÉFACTS ET MATÉRIAUX
-===================================================== */
-
-function openDetails(key) {
-  const item = getItemByKey(key);
-  if (!item) return;
-
-  if (item.kind === "bossdrop") {
-    openBossDropDetails(item);
-    return;
-  }
-
-  const dialog = el("detailDialog");
-  const content = el("detailContent");
-
-  if (!dialog || !content) return;
-
-  const selected = wishlist.includes(key);
-  const days = getAvailability(item);
-
-  content.innerHTML = `
-    <div class="detail-head">
-
-      <div class="detail-image">
-        ${imageHTML(getImage(item), getName(item))}
-      </div>
-
-      <div>
-        <p class="eyebrow">
-          ${item.kind === "material" ? "MATÉRIAU" : "ARTÉFACT"}
-        </p>
-
-        <h2>${escapeHTML(getName(item))}</h2>
-
-        <p class="detail-domain">
-          ${escapeHTML(item.region || item.domain || "")}
-        </p>
-      </div>
-
-    </div>
-
-    <div class="bonus-block">
-      <h3>Description</h3>
-      <p>
-        ${escapeHTML(
-          item.description ||
-          item.bonus?.["2pc"] ||
-          item["2-piece_bonus"] ||
-          "Aucune description disponible."
-        )}
-      </p>
-    </div>
-
-    ${
-      item.bonus?.["4pc"] || item["4-piece_bonus"]
-        ? `
-          <div class="bonus-block">
-            <h3>Bonus 4 pièces</h3>
-            <p>${escapeHTML(item.bonus?.["4pc"] || item["4-piece_bonus"])}</p>
-          </div>
-        `
-        : ""
+    if (item.kind === "material") {
+      subtitle = availability.length
+        ? `Disponible : ${availability.join(" · ")}`
+        : "Livre d'aptitude";
+    } else if (item.kind === "bossdrop") {
+      subtitle = `Boss : ${escapeHtml(item.bossName)}`;
+    } else {
+      subtitle = escapeHtml(getDomain(item));
     }
 
-    <div class="bonus-block">
-      <h3>Jours de disponibilité</h3>
-      <p>
-        ${days.length
-          ? escapeHTML(days.join(", "))
-          : "Information non renseignée."
-        }
-      </p>
-    </div>
-
-    <button
-      class="button detail-action"
-      id="toggleWishlistDetail"
-      type="button"
-    >
-      ${selected ? "Retirer de ma liste" : "Ajouter à ma liste"}
-    </button>
-  `;
-
-  el("toggleWishlistDetail").addEventListener("click", () => {
-    toggleWishlist(key);
-    openDetails(key);
-  });
-
-  dialog.showModal();
-}
-
-/* =====================================================
-   DÉTAILS DES BOSS
-===================================================== */
-
-function openBossDropDetails(item) {
-  const boss = bosses.find(b => b.id === item.bossId);
-  if (!boss) return;
-
-  const dialog = el("detailDialog");
-  const content = el("detailContent");
-
-  if (!dialog || !content) return;
-
-  const selected = wishlist.includes(getKey(item));
-
-  content.innerHTML = `
-    <div class="boss-detail-head">
-
-      <div class="boss-large-image">
-        ${imageHTML(boss.image, boss.name)}
-      </div>
-
-      <div>
-        <p class="eyebrow">BOSS HEBDOMADAIRE</p>
-
-        <h2>${escapeHTML(boss.name)}</h2>
-
-        <p>${escapeHTML(boss.region || "")}</p>
-      </div>
-
-    </div>
-
-    <div class="bonus-block">
-      <h3>Localisation</h3>
-      <p>${escapeHTML(boss.location || "Non renseignée.")}</p>
-    </div>
-
-    <div class="bonus-block">
-      <h3>Récompenses disponibles</h3>
-
-      <div class="boss-drop-list">
-
-        ${boss.drops.map(drop => {
-          const key = `bossdrop:${boss.id}:${drop.id}`;
-          const isSelected = wishlist.includes(key);
-
-          return `
-            <div class="boss-drop-row">
-
-              <div class="boss-drop-copy">
-                ${imageHTML(drop.image, drop.name)}
-
-                <div>
-                  <strong>${escapeHTML(drop.name)}</strong>
-
-                  <p class="boss-probability">
-                    ${escapeHTML(
-                      drop.probability || "Probabilité non renseignée"
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                class="button button-quiet"
-                type="button"
-                data-action="boss-wish"
-                data-key="${escapeHTML(key)}"
-              >
-                ${isSelected ? "Retirer" : "Ajouter"}
-              </button>
-
-            </div>
-          `;
-        }).join("")}
-
-      </div>
-    </div>
-
-    <button
-      class="button detail-action"
-      id="toggleBossWishlist"
-      type="button"
-    >
-      ${selected ? "Retirer ce drop de ma liste" : "Ajouter ce drop à ma liste"}
-    </button>
-  `;
-
-  content.querySelectorAll('[data-action="boss-wish"]').forEach(button => {
-    button.addEventListener("click", () => {
-      toggleWishlist(button.dataset.key);
-      openBossDropDetails(item);
-    });
-  });
-
-  el("toggleBossWishlist").addEventListener("click", () => {
-    toggleWishlist(getKey(item));
-    openBossDropDetails(item);
-  });
-
-  dialog.showModal();
-}
-
-/* =====================================================
-   PLANIFICATEUR
-===================================================== */
-
-/*
-  Récupère le jour attribué à un boss.
-  Tous ses drops sélectionnés partagent le même jour.
-*/
-
-function getBossDay(bossId) {
-  const bossKeys = wishlist.filter(key => {
-    const item = getItemByKey(key);
-
-    return item &&
-      item.kind === "bossdrop" &&
-      item.bossId === bossId;
-  });
-
-  for (const key of bossKeys) {
-    if (planner[key]) return planner[key];
-  }
-
-  return "";
-}
-
-/*
-  Déplace un élément vers le jour choisi.
-  Pour un boss, tous ses drops sélectionnés changent ensemble.
-*/
-
-function setPlannerDay(key, day) {
-  const item = getItemByKey(key);
-
-  if (!item || !wishlist.includes(key)) return;
-
-  if (item.kind === "bossdrop") {
-    const sameBossKeys = wishlist.filter(wishlistKey => {
-      const selected = getItemByKey(wishlistKey);
-
-      return selected &&
-        selected.kind === "bossdrop" &&
-        selected.bossId === item.bossId;
-    });
-
-    sameBossKeys.forEach(bossKey => {
-      planner[bossKey] = day;
-    });
-
-  } else {
-    planner[key] = day;
-  }
-
-  saveStorage();
-  renderPlanner();
-}
-
-/*
-  Retire complètement l'élément de la liste.
-  La croix n'efface plus seulement le jour.
-*/
-
-function removePlannerItem(key) {
-  removeWishlistItem(key);
-}
-
-/* =====================================================
-   AFFICHAGE DU PLANIFICATEUR
-===================================================== */
-
-function renderPlanner() {
-  const plannerElement = el("planner");
-  const empty = el("plannerEmpty");
-
-  if (!plannerElement || !empty) return;
-
-  const selectedItems = wishlist
-    .map(key => getItemByKey(key))
-    .filter(Boolean);
-
-  empty.hidden = selectedItems.length > 0;
-  plannerElement.hidden = selectedItems.length === 0;
-
-  updateCounts();
-
-  if (!selectedItems.length) {
-    return;
-  }
-
-  const choices = plannerElement.querySelector(".planner-choices");
-  const week = plannerElement.querySelector(".planner-week-grid");
-
-  if (!choices || !week) return;
-
-  /* LISTE DES ÉLÉMENTS */
-
-  choices.innerHTML = `
-    <div class="planner-choice-list">
-
-      ${selectedItems.map(item => {
-        const key = getKey(item);
-
-        const assignedDay = item.kind === "bossdrop"
-          ? getBossDay(item.bossId)
-          : planner[key] || "";
-
-        return `
-          <div class="planner-choice">
-
-            <div class="planner-choice-info">
-              ${imageHTML(getImage(item), getName(item))}
-
-              <div>
-                <strong>${escapeHTML(getName(item))}</strong>
-
-                <small>
-                  ${escapeHTML(
-                    item.bossName ||
-                    item.region ||
-                    item.kind
-                  )}
-                </small>
-              </div>
-            </div>
-
-            <div class="day-selector">
-
-              ${DAYS.map(day => `
-                <button
-                  class="day-toggle ${assignedDay === day ? "active" : ""}"
-                  type="button"
-                  data-action="assign-day"
-                  data-key="${escapeHTML(key)}"
-                  data-day="${day}"
-                  aria-pressed="${assignedDay === day}"
-                >
-                  ${day.slice(0, 3)}
-                </button>
-              `).join("")}
-
-            </div>
-
-            <button
-              class="remove-item"
-              type="button"
-              data-action="remove"
-              data-key="${escapeHTML(key)}"
-              aria-label="Supprimer ${escapeHTML(getName(item))} de ma liste"
-              title="Supprimer de ma liste"
-            >
-              ✕
-            </button>
-
-          </div>
-        `;
-      }).join("")}
-
-    </div>
-  `;
-
-  /* PLANNING DE LA SEMAINE */
-
-  week.innerHTML = DAYS.map(day => {
-    const dayItems = selectedItems.filter(item => {
-      const key = getKey(item);
-
-      if (item.kind === "bossdrop") {
-        return getBossDay(item.bossId) === day;
-      }
-
-      return planner[key] === day;
-    });
-
     return `
-      <section class="day-column">
+      <button class="artifact-card"
+        data-open="${escapeHtml(key)}"
+        aria-label="Afficher ${escapeHtml(item.name)}">
 
-        <h3>${day}</h3>
+        <span class="wish-mark">${wished ? "♥" : "♡"}</span>
 
-        <div class="day-items">
-
-          ${
-            dayItems.length
-              ? dayItems.map(item => `
-                <div class="planner-item">
-                  ${imageHTML(getImage(item), getName(item))}
-                  <span>${escapeHTML(getName(item))}</span>
-                </div>
-              `).join("")
-              : '<p class="no-farm">Rien de prévu</p>'
-          }
-
+        <div class="artifact-art">
+          ${imageMarkup(getImage(item), item.name)}
         </div>
 
-      </section>
+        <div class="card-copy">
+          <h3>${escapeHtml(item.name)}</h3>
+          <div class="rarity">${"★".repeat(Math.min(5, rarity))}</div>
+          <p class="card-domain">${subtitle}</p>
+        </div>
+      </button>
     `;
   }).join("");
+
+  el("emptyState").classList.toggle("hidden", items.length > 0);
 }
 
-/* =====================================================
-   ÉVÉNEMENTS
-===================================================== */
 
-function setupEvents() {
+/* =========================
+   LISTE DE FARM ET PLANNING
+========================= */
 
-  /* NAVIGATION */
+function removeWishlistItem(key) {
+  state.wishlist.delete(key);
+  delete state.farmDays[key];
 
-  document.querySelectorAll(".tab").forEach(button => {
-    button.addEventListener("click", () => {
-      setView(button.dataset.view);
-    });
-  });
-
-  /* CATÉGORIES */
-
-  document.querySelectorAll(".category-tab").forEach(button => {
-    button.addEventListener("click", () => {
-      setCategory(button.dataset.category);
-    });
-  });
-
-  /* RECHERCHE */
-
-  el("searchInput")?.addEventListener("input", renderCatalog);
-
-  el("rarityFilter")?.addEventListener("change", renderCatalog);
-
-  /* CATALOGUE */
-
-  el("artifactGrid")?.addEventListener("click", event => {
-    const button = event.target.closest("[data-action]");
-    if (!button) return;
-
-    const key = button.dataset.key;
-
-    if (button.dataset.action === "wish") {
-      toggleWishlist(key);
-    }
-
-    if (button.dataset.action === "details") {
-      openDetails(key);
-    }
-  });
-
-  /* PLANIFICATEUR */
-
-  el("planner")?.addEventListener("click", event => {
-    const button = event.target.closest("[data-action]");
-    if (!button) return;
-
-    const key = button.dataset.key;
-
-    if (button.dataset.action === "assign-day") {
-      setPlannerDay(key, button.dataset.day);
-    }
-
-    if (button.dataset.action === "remove") {
-      removePlannerItem(key);
-    }
-  });
-
-  /* FENÊTRE DE DÉTAILS */
-
-  el("closeDialog")?.addEventListener("click", () => {
-    el("detailDialog")?.close();
-  });
-
-  el("detailDialog")?.addEventListener("click", event => {
-    if (event.target === el("detailDialog")) {
-      el("detailDialog").close();
-    }
-  });
-
-  /* ACTIONS DU PLANIFICATEUR */
-
-  el("clearWishlist")?.addEventListener("click", clearWishlist);
-
-  el("showWishlist")?.addEventListener("click", () => {
-    setView("planif");
-  });
-
-  el("backToCatalog")?.addEventListener("click", () => {
-    setView("catalogue");
-  });
-}
-
-/* =====================================================
-   INITIALISATION
-===================================================== */
-
-async function init() {
-  setupEvents();
-
-  await Promise.all([
-    loadArtifacts(),
-    loadMaterials(),
-    loadBosses()
-  ]);
+  saveWishlist();
+  saveFarmDays();
 
   renderCatalog();
   renderPlanner();
-  setCategory("artifacts");
 }
 
-document.addEventListener("DOMContentLoaded", init);
+function setPlannerDay(key, day) {
+  const item = allItems().find(entry => getKey(entry) === key);
+
+  if (!item) return;
+
+  /* Pour un boss : tous ses drops sélectionnés changent de jour ensemble */
+  if (item.kind === "bossdrop") {
+    const bossDropsInWishlist = state.bossDrops.filter(drop =>
+      drop.bossId === item.bossId &&
+      state.wishlist.has(getKey(drop))
+    );
+
+    const alreadySelected = (state.farmDays[key] || []).includes(day);
+
+    bossDropsInWishlist.forEach(drop => {
+      const dropKey = getKey(drop);
+      state.farmDays[dropKey] = alreadySelected ? [] : [day];
+    });
+  }
+
+  /* Pour un matériau : on choisit un seul jour à la fois */
+  else if (item.kind === "material") {
+    const selected = state.farmDays[key] || [];
+
+    state.farmDays[key] = selected.includes(day) ? [] : [day];
+  }
+
+  /* Pour un artéfact : plusieurs jours restent possibles */
+  else {
+    state.farmDays[key] ||= [];
+
+    state.farmDays[key] = state.farmDays[key].includes(day)
+      ? state.farmDays[key].filter(value => value !== day)
+      : [...state.farmDays[key], day];
+  }
+
+  saveFarmDays();
+  renderPlanner();
+}
+
+function renderPlanner() {
+  if (!el("planner")) return;
+
+  const wished = [...state.wishlist]
+    .map(key => allItems().find(item => getKey(item) === key))
+    .filter(Boolean);
+
+  el("plannerEmpty").classList.toggle("hidden", wished.length > 0);
+  el("planner").classList.toggle("hidden", !wished.length);
+
+  if (!wished.length) {
+    el("planner").innerHTML = "";
+    updateCounts();
+    return;
+  }
+
+  const choices = `
+    <section class="planner-choices">
+      <h2>Choisis tes jours de farm</h2>
+      <p>
+        Choisis un jour pour chaque matériau ou drop de boss.
+        Les drops d'un même boss sont déplacés ensemble.
+      </p>
+
+      <div class="planner-choice-list">
+        ${wished.map(item => {
+          const key = getKey(item);
+          const selected = state.farmDays[key] || [];
+          const availability = getAvailability(item);
+
+          let description = "";
+
+          if (item.kind === "material") {
+            description = availability.length
+              ? `Disponible : ${availability.join(", ")}`
+              : "Disponibilité non fournie par la source";
+          } else if (item.kind === "bossdrop") {
+            description = `Drop de ${escapeHtml(item.bossName)}`;
+          } else {
+            description = "Artéfact · domaine accessible tous les jours";
+          }
+
+          return `
+            <article class="planner-choice">
+              <div class="planner-choice-info">
+                ${imageMarkup(getImage(item), item.name)}
+                <div>
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <p class="card-domain">${description}</p>
+                </div>
+              </div>
+
+              <div class="day-selector">
+                ${DAYS.map(day => {
+                  const on = selected.includes(day);
+
+                  return `
+                    <button type="button"
+                      class="day-toggle ${on ? "selected" : ""}"
+                      data-day-toggle="${escapeHtml(key)}"
+                      data-day="${day}"
+                      aria-pressed="${on}"
+                      title="Choisir ${day}">
+                      ${day}
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+
+  const week = `
+    <section class="planner-week">
+      <h2>Mon planning de farm</h2>
+
+      <div class="planner-week-grid">
+        ${DAYS.map(day => {
+          const dayItems = wished.filter(item =>
+            (state.farmDays[getKey(item)] || []).includes(day)
+          );
+
+          return `
+            <section class="day-column">
+              <h3>${day}</h3>
+
+              <div class="day-items">
+                ${dayItems.length
+                  ? dayItems.map(item => `
+                    <article class="planner-item">
+                      <button class="remove-item"
+                        data-remove="${escapeHtml(getKey(item))}"
+                        aria-label="Retirer ${escapeHtml(item.name)}">
+                        ×
+                      </button>
+
+                      ${imageMarkup(getImage(item), item.name)}
+
+                      <strong>${escapeHtml(item.name)}</strong>
+
+                      ${item.kind === "bossdrop"
+                        ? `<small>${escapeHtml(item.bossName)}</small>`
+                        : ""}
+                    </article>
+                  `).join("")
+                  : `<p class="no-farm">Rien de prévu</p>`
+                }
+              </div>
+            </section>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+
+  el("planner").innerHTML = choices + week;
+
+  updateCounts();
+}
+
+
+/* =========================
+   FICHE DÉTAILLÉE
+========================= */
+
+function openDetails(key) {
+  const item = allItems().find(entry => getKey(entry) === key);
+
+  if (!item) return;
+
+  const wished = state.wishlist.has(key);
+  const rarity = getRarity(item);
+  const material = item.kind === "material";
+  const bossDrop = item.kind === "bossdrop";
+  const availability = getAvailability(item);
+
+  const bonus2 = item.bonus?.["2pc"] || item["2pc"] || "";
+  const bonus4 = item.bonus?.["4pc"] || item["4pc"] || "";
+
+  let extra = "";
+
+  if (material) {
+    extra = `
+      <div class="bonus-block">
+        <h3>Disponibilité</h3>
+        <p>
+          ${availability.length
+            ? `Ce livre se récupère le : <strong>${availability.join(", ")}</strong>.`
+            : "Les jours de disponibilité ne sont pas indiqués par la source de données."
+          }
+        </p>
+      </div>
+
+      <div class="bonus-block">
+        <h3>Rareté</h3>
+        <p>${"★".repeat(Math.min(5, rarity))} · ${rarity}★ (rareté maximale des livres d’aptitude)</p>
+      </div>
+    `;
+  }
+
+  else if (bossDrop) {
+    extra = `
+      <div class="bonus-block">
+        <h3>Boss hebdomadaire</h3>
+        <p><strong>${escapeHtml(item.bossName)}</strong></p>
+        <p>${escapeHtml(item.bossLocation)}</p>
+      </div>
+
+      <div class="bonus-block">
+        <h3>Récompense</h3>
+        <p>${escapeHtml(item.probability || "Récompense possible")}</p>
+      </div>
+
+      <div class="bonus-block">
+        <h3>Organisation du planning</h3>
+        <p>
+          Lorsque tu changes le jour de ce drop, les autres drops de
+          ${escapeHtml(item.bossName)} présents dans ta liste sont déplacés
+          avec lui.
+        </p>
+      </div>
+    `;
+  }
+
+  else {
+    extra = `
+      <div class="bonus-block">
+        <h3>Bonus 2 pièces</h3>
+        <p>${escapeHtml(bonus2 || "Bonus non disponible dans la source de données.")}</p>
+      </div>
+
+      <div class="bonus-block">
+        <h3>Bonus 4 pièces</h3>
+        <p>${escapeHtml(bonus4 || "Bonus non disponible dans la source de données.")}</p>
+      </div>
+
+      ${renderDomainLocation(item)}
+
+      ${getPieces(item).length ? `
+        <div class="bonus-block">
+          <h3>Pièces du set</h3>
+          <div class="piece-grid">
+            ${getPieces(item).map(piece => `
+              <div class="piece">
+                ${piece.img
+                  ? `<img src="${escapeHtml(piece.img)}" alt="" loading="lazy">`
+                  : ""}
+                <strong>${escapeHtml(piece.name || piece.label)}</strong>
+                <p>${escapeHtml(piece.description)}</p>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      ` : ""}
+    `;
+  }
+
+  const heading = material
+    ? "MATÉRIAU D'APTITUDE"
+    : bossDrop
+      ? "DROP DE BOSS HEBDOMADAIRE"
+      : "SET D’ARTÉFACTS";
+
+  const subtitle = material
+    ? "Philosophie d'aptitude · palier maximal"
+    : bossDrop
+      ? escapeHtml(item.bossName)
+      : escapeHtml(getDomain(item));
+
+  el("detailContent").innerHTML = `
+    <div class="detail-head">
+      ${imageMarkup(getImage(item), item.name, "detail-image")}
+
+      <div>
+        <p class="eyebrow">${heading} · ${rarity}★</p>
+        <h2 id="detailTitle">${escapeHtml(item.name)}</h2>
+        <p class="detail-domain">${subtitle}</p>
+      </div>
+    </div>
+
+    ${extra}
+
+    <button class="button detail-action" id="toggleWishlist">
+      ${wished ? "♥ Retirer de ma liste" : "♡ Ajouter à ma liste de farm"}
+    </button>
+  `;
+
+  el("detailDialog").showModal();
+
+  el("toggleWishlist").addEventListener("click", () => {
+    if (state.wishlist.has(key)) {
+      state.wishlist.delete(key);
+      delete state.farmDays[key];
+    } else {
+      state.wishlist.add(key);
+
+      if (material && availability.length) {
+        state.farmDays[key] = [...availability];
+      }
+    }
+
+    saveWishlist();
+    saveFarmDays();
+
+    renderCatalog();
+    renderPlanner();
+
+    el("detailDialog").close();
+  });
+}
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function setView(view) {
+  state.view = view;
+
+  el("catalogueView").classList.toggle("hidden", view !== "catalogue");
+  el("planifView").classList.toggle("hidden", view !== "planif");
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    const active = tab.dataset.view === view;
+
+    tab.classList.toggle("active", active);
+
+    if (active) {
+      tab.setAttribute("aria-current", "page");
+    } else {
+      tab.removeAttribute("aria-current");
+    }
+  });
+
+  if (view === "planif") renderPlanner();
+}
+
+function setCategory(category) {
+  state.category = category;
+
+  document.querySelectorAll(".category-tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.category === category);
+  });
+
+  el("rarityFilter").value = "all";
+  el("searchInput").value = "";
+
+  if (category === "artifacts") {
+    el("catalogueHeading").textContent = "Trouve ton prochain set";
+    el("catalogueDescription").textContent =
+      "Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de farm.";
+    el("rarityFilter").innerHTML = `
+      <option value="all">Toutes</option>
+      <option value="2">2★</option>
+      <option value="3">3★</option>
+      <option value="4">4★</option>
+      <option value="5">5★</option>
+    `;
+  }
+
+  else if (category === "materials") {
+    el("catalogueHeading").textContent = "Trouve tes livres d'aptitude";
+    el("catalogueDescription").textContent =
+      "Retrouve uniquement les Philosophies, le palier maximal des livres d'aptitude.";
+    el("rarityFilter").innerHTML = `
+      <option value="all">Toutes</option>
+      <option value="4">4★ · palier maximal</option>
+    `;
+  }
+
+  else {
+    el("catalogueHeading").textContent = "Boss hebdomadaires";
+    el("catalogueDescription").textContent =
+      "Retrouve les récompenses possibles des boss hebdomadaires et ajoute-les à ton planning.";
+    el("rarityFilter").innerHTML = `
+      <option value="all">Toutes</option>
+      <option value="5">5★</option>
+    `;
+  }
+
+  renderCatalog();
+}
+
+
+/* =========================
+   ÉVÉNEMENTS
+========================= */
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => setView(tab.dataset.view));
+});
+
+document.querySelectorAll(".category-tab").forEach(tab => {
+  tab.addEventListener("click", () => setCategory(tab.dataset.category));
+});
+
+el("searchInput").addEventListener("input", renderCatalog);
+el("rarityFilter").addEventListener("change", renderCatalog);
+
+el("showWishlist").addEventListener("click", () => setView("planif"));
+el("backToCatalog").addEventListener("click", () => setView("catalogue"));
+
+el("artifactGrid").addEventListener("click", event => {
+  const card = event.target.closest("[data-open]");
+
+  if (card) openDetails(card.dataset.open);
+});
+
+
+/* CLICS DANS LE PLANNING */
+
+el("planner").addEventListener("click", event => {
+  const dayButton = event.target.closest("[data-day-toggle]");
+
+  if (dayButton) {
+    const key = dayButton.dataset.dayToggle;
+    const day = dayButton.dataset.day;
+
+    setPlannerDay(key, day);
+    return;
+  }
+
+  const removeButton = event.target.closest("[data-remove]");
+
+  if (removeButton) {
+    removeWishlistItem(removeButton.dataset.remove);
+  }
+});
+
+
+/* VIDER TOUTE LA LISTE */
+
+el("clearWishlist").addEventListener("click", () => {
+  if (
+    state.wishlist.size &&
+    confirm("Supprimer tous les artéfacts, matériaux et drops de boss de ta liste ?")
+  ) {
+    state.wishlist.clear();
+    state.farmDays = {};
+
+    saveWishlist();
+    saveFarmDays();
+
+    renderCatalog();
+    renderPlanner();
+  }
+});
+
+
+/* FERMETURE DE LA FENÊTRE */
+
+el("closeDialog").addEventListener("click", () => {
+  el("detailDialog").close();
+});
+
+el("detailDialog").addEventListener("click", event => {
+  if (event.target === el("detailDialog")) {
+    el("detailDialog").close();
+  }
+});
+
+
+/* =========================
+   DÉMARRAGE
+========================= */
+
+loadWishlist();
+updateCounts();
+
+loadArtifacts();
+loadMaterials();
+loadBosses();
