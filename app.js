@@ -1,9 +1,9 @@
 
 "use strict";
 
-/* =========================================
-   CONFIGURATION
-========================================= */
+/* =====================================================
+   TEYVAT — APPLICATION PRINCIPALE
+===================================================== */
 
 const API_BASE = "https://genshin-impact.up.railway.app";
 
@@ -37,10 +37,6 @@ const SET_DOMAIN = {
   "wanderer's troupe": "Mondstadt"
 };
 
-/* =========================================
-   ÉTAT DE L'APPLICATION
-========================================= */
-
 const state = {
   artifacts: [],
   materials: [],
@@ -57,9 +53,9 @@ const state = {
 
 const el = (id) => document.getElementById(id);
 
-/* =========================================
+/* =====================================================
    OUTILS
-========================================= */
+===================================================== */
 
 function escapeHTML(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -71,13 +67,6 @@ function escapeHTML(value) {
   })[char]);
 }
 
-function setHidden(element, hidden) {
-  if (!element) return;
-
-  element.hidden = Boolean(hidden);
-  element.classList.toggle("hidden", Boolean(hidden));
-}
-
 function normalizeText(value) {
   return String(value ?? "")
     .normalize("NFD")
@@ -86,15 +75,54 @@ function normalizeText(value) {
     .trim();
 }
 
+function normalizeDay(day) {
+  const value = normalizeText(day);
+
+  const knownDays = {
+    lundi: "lundi",
+    mardi: "mardi",
+    mercredi: "mercredi",
+    jeudi: "jeudi",
+    vendredi: "vendredi",
+    samedi: "samedi",
+    dimanche: "dimanche"
+  };
+
+  return knownDays[value] || value;
+}
+
+function normalizeImage(path) {
+  if (!path) return "";
+
+  const value = String(path).trim();
+
+  if (
+    value.startsWith("https://") ||
+    value.startsWith("http://") ||
+    value.startsWith("data:")
+  ) {
+    return value;
+  }
+
+  return `./${value.replace(/^\.?\//, "")}`;
+}
+
 function getName(item) {
   if (!item) return "Sans nom";
 
-  if (typeof item.name === "string") return item.name;
-  if (typeof item.name === "object") {
-    return item.name.fr
-      || item.name.French
-      || item.name.en
-      || "Sans nom";
+  if (typeof item.name === "string") {
+    return item.name;
+  }
+
+  if (item.name && typeof item.name === "object") {
+    return (
+      item.name.fr ||
+      item.name.French ||
+      item.name.en ||
+      item.name.English ||
+      Object.values(item.name)[0] ||
+      "Sans nom"
+    );
   }
 
   return item.title || item.id || "Sans nom";
@@ -116,7 +144,7 @@ function getImage(item) {
 }
 
 function getRarity(item) {
-  const rarity = Number(
+  const value = Number(
     item?.rarity ??
     item?.max_rarity ??
     item?.maxRarity ??
@@ -124,12 +152,12 @@ function getRarity(item) {
     5
   );
 
-  return Number.isFinite(rarity) ? rarity : 5;
+  return Number.isFinite(value) ? value : 5;
 }
 
 function getKey(item) {
   if (item.kind === "material") {
-    return `material:${item.key || item.id}`;
+    return `material:${item.id || item.key}`;
   }
 
   if (item.kind === "bossdrop") {
@@ -146,16 +174,17 @@ function getKey(item) {
 
 function getAvailability(item) {
   if (item.kind === "material") {
-    return item.farmingDays || [];
+    return (item.farmingDays || []).map(normalizeDay);
   }
 
-  return (
+  const days =
     item.farmingDays ||
     item.farming_days ||
     item.days ||
     item.availability ||
-    []
-  );
+    [];
+
+  return Array.isArray(days) ? days.map(normalizeDay) : [];
 }
 
 function getPieces(item) {
@@ -188,27 +217,31 @@ function getDomainLocation(item) {
   const domain = getDomain(item);
   if (!domain) return "";
 
-  return DOMAIN_INFO.find(
-    (entry) => normalizeText(entry.name) === normalizeText(domain)
-  )?.name || domain;
+  return (
+    DOMAIN_INFO.find(
+      (entry) =>
+        normalizeText(entry.name) === normalizeText(domain)
+    )?.name || domain
+  );
 }
 
-function renderDomainLocation(item) {
+function getDomainHTML(item) {
   const location = getDomainLocation(item);
+
   return location
-    ? `<p class="item-location">${escapeHTML(location)}</p>`
+    ? `<p class="detail-domain">${escapeHTML(location)}</p>`
     : "";
 }
 
 function getImageHTML(image, name, className = "") {
   if (!image) {
-    return `<div class="image-placeholder ${className}">?</div>`;
+    return `<div class="image-fallback ${className}">✧</div>`;
   }
 
   return `
     <img
       class="${className}"
-      src="${escapeHTML(image)}"
+      src="${escapeHTML(normalizeImage(image))}"
       alt="${escapeHTML(name)}"
       loading="lazy"
       onerror="this.style.display='none'"
@@ -226,9 +259,15 @@ async function fetchJson(url) {
   return response.json();
 }
 
-/* =========================================
-   SAUVEGARDE LOCALE
-========================================= */
+function setHidden(element, hidden) {
+  if (!element) return;
+
+  element.hidden = Boolean(hidden);
+}
+
+/* =====================================================
+   SAUVEGARDE
+===================================================== */
 
 function loadWishlist() {
   try {
@@ -253,6 +292,16 @@ function loadWishlist() {
   } catch {
     state.farmDays = {};
   }
+
+  // Normalisation des jours déjà sauvegardés.
+  Object.keys(state.farmDays).forEach((key) => {
+    if (Array.isArray(state.farmDays[key])) {
+      state.farmDays[key] =
+        state.farmDays[key].map(normalizeDay);
+    } else {
+      state.farmDays[key] = [];
+    }
+  });
 }
 
 function saveWishlist() {
@@ -267,9 +316,9 @@ function saveWishlist() {
   );
 }
 
-/* =========================================
+/* =====================================================
    CHARGEMENT DES ARTEFACTS
-========================================= */
+===================================================== */
 
 async function loadArtifacts() {
   try {
@@ -293,23 +342,23 @@ async function loadArtifacts() {
     }));
 
     renderCatalog();
-    updateCounts();
 
   } catch (error) {
     console.error("Erreur de chargement des artefacts :", error);
 
-    if (el("artifactStatus")) {
-      el("artifactStatus").textContent =
+    renderCatalog();
+
+    const status = el("artifactStatus");
+    if (status) {
+      status.textContent =
         "Impossible de charger les artefacts.";
     }
-
-    renderCatalog();
   }
 }
 
-/* =========================================
+/* =====================================================
    CHARGEMENT DES MATÉRIAUX
-========================================= */
+===================================================== */
 
 async function loadMaterials() {
   try {
@@ -325,20 +374,20 @@ async function loadMaterials() {
       key: item.id,
       id: item.id,
       name: getName(item),
-      image: item.image
-        ? `./${String(item.image).replace(/^\.?\//, "")}`
-        : "",
-      farmingDays: Array.isArray(item.days) ? item.days : []
+      image: normalizeImage(item.image),
+      farmingDays: Array.isArray(item.days)
+        ? item.days.map(normalizeDay)
+        : []
     }));
 
     renderCatalog();
-    updateCounts();
 
   } catch (error) {
     console.error("Erreur de chargement des matériaux :", error);
 
-    if (el("materialStatus")) {
-      el("materialStatus").textContent =
+    const status = el("materialStatus");
+    if (status) {
+      status.textContent =
         "Impossible de charger les matériaux.";
     }
 
@@ -346,9 +395,9 @@ async function loadMaterials() {
   }
 }
 
-/* =========================================
-   CHARGEMENT DES BOSS HEBDOMADAIRES
-========================================= */
+/* =====================================================
+   CHARGEMENT DES BOSS
+===================================================== */
 
 async function loadBosses() {
   try {
@@ -368,24 +417,20 @@ async function loadBosses() {
         bossId: boss.id,
         bossName: boss.name,
         bossLocation: boss.location,
-        bossImage: boss.image
-          ? `./${String(boss.image).replace(/^\.?\//, "")}`
-          : "",
-        image: drop.image
-          ? `./${String(drop.image).replace(/^\.?\//, "")}`
-          : "",
+        bossImage: normalizeImage(boss.image),
+        image: normalizeImage(drop.image),
         rarity: 5
       }));
     });
 
     renderCatalog();
-    updateCounts();
 
   } catch (error) {
     console.error("Erreur de chargement des boss :", error);
 
-    if (el("bossStatus")) {
-      el("bossStatus").textContent =
+    const status = el("bossStatus");
+    if (status) {
+      status.textContent =
         "Impossible de charger les boss.";
     }
 
@@ -393,9 +438,9 @@ async function loadBosses() {
   }
 }
 
-/* =========================================
-   DONNÉES DU CATALOGUE
-========================================= */
+/* =====================================================
+   DONNÉES
+===================================================== */
 
 function allItems() {
   return [
@@ -411,33 +456,38 @@ function currentItems() {
   }
 
   if (state.category === "bosses") {
-    return state.bossDrops;
+    return state.bosses;
   }
 
   return state.artifacts;
 }
 
 function findItem(key) {
-  return allItems().find((item) => getKey(item) === key);
+  return allItems().find(
+    (item) => getKey(item) === key
+  );
 }
 
 function isInWishlist(item) {
-  const key = getKey(item);
-  return state.wishlist.includes(key);
+  return state.wishlist.includes(getKey(item));
 }
 
-/* =========================================
+/* =====================================================
    NAVIGATION
-========================================= */
+===================================================== */
 
 function setView(view) {
   state.view = view;
 
-  const catalogue = el("catalogueView");
-  const planner = el("planifView");
+  setHidden(
+    el("catalogueView"),
+    view !== "catalogue"
+  );
 
-  setHidden(catalogue, view !== "catalogue");
-  setHidden(planner, view !== "planif");
+  setHidden(
+    el("planifView"),
+    view !== "planif"
+  );
 
   document.querySelectorAll(".tab").forEach((button) => {
     button.classList.toggle(
@@ -463,16 +513,16 @@ function setCategory(category) {
 
   const headings = {
     artifacts: {
-      title: "Artefacts",
-      description: "Découvre les sets d'artefacts disponibles."
+      title: "Artéfacts",
+      description: "Découvrez les ensembles d'artéfacts disponibles."
     },
     materials: {
       title: "Matériaux",
-      description: "Retrouve les matériaux nécessaires à ta progression."
+      description: "Retrouvez les matériaux nécessaires à votre progression."
     },
     bosses: {
       title: "Boss hebdomadaires",
-      description: "Retrouve les récompenses des boss hebdomadaires."
+      description: "Découvrez les boss et leurs récompenses."
     }
   };
 
@@ -492,96 +542,172 @@ function setCategory(category) {
   renderCatalog();
 }
 
-/* =========================================
+/* =====================================================
+   FILTRAGE
+===================================================== */
+
+function matchesSearch(item) {
+  const search = normalizeText(state.search);
+
+  if (!search) return true;
+
+  const searchable = [
+    getName(item),
+    item.bossName,
+    item.bossLocation,
+    item.family,
+    item.region,
+    item.location
+  ].map(normalizeText);
+
+  return searchable.some((value) => value.includes(search));
+}
+
+function matchesRarity(item) {
+  return (
+    state.rarity === "all" ||
+    String(getRarity(item)) === state.rarity
+  );
+}
+
+/* =====================================================
+   CARTES DES ARTEFACTS ET MATÉRIAUX
+===================================================== */
+
+function renderStandardCard(item) {
+  const key = getKey(item);
+  const name = getName(item);
+  const image = getImage(item);
+  const rarity = getRarity(item);
+  const added = isInWishlist(item);
+
+  const subtitle = item.kind === "material"
+    ? (item.family || item.region || "Matériau")
+    : getDomainLocation(item);
+
+  return `
+    <article class="artifact-card">
+
+      <button
+        class="card-open"
+        type="button"
+        data-action="details"
+        data-key="${escapeHTML(key)}"
+      >
+        <div class="artifact-art">
+          ${getImageHTML(image, name)}
+        </div>
+
+        <div class="card-copy">
+          <h3>${escapeHTML(name)}</h3>
+
+          <p class="card-domain">
+            ${escapeHTML(subtitle)}
+          </p>
+
+          <div class="rarity">
+            ${"★".repeat(Math.min(5, Math.max(1, rarity)))}
+          </div>
+        </div>
+      </button>
+
+      <button
+        class="wish-mark ${added ? "selected" : ""}"
+        type="button"
+        data-action="toggle"
+        data-key="${escapeHTML(key)}"
+        aria-label="${added ? "Retirer de" : "Ajouter à"} la liste"
+        title="${added ? "Retirer de ma liste" : "Ajouter à ma liste"}"
+      >
+        ${added ? "✓" : "+"}
+      </button>
+
+    </article>
+  `;
+}
+
+/* =====================================================
+   CARTES DES BOSS
+===================================================== */
+
+function renderBossCard(boss) {
+  const drops = state.bossDrops.filter(
+    (drop) => drop.bossId === boss.id
+  );
+
+  return `
+    <article class="artifact-card boss-card">
+
+      <button
+        class="card-open"
+        type="button"
+        data-action="boss-details"
+        data-boss="${escapeHTML(boss.id)}"
+      >
+        <div class="artifact-art">
+          ${getImageHTML(boss.image, boss.name)}
+        </div>
+
+        <div class="card-copy">
+          <h3>${escapeHTML(boss.name)}</h3>
+
+          <p class="card-domain boss-location">
+            ${escapeHTML(boss.location || "Localisation inconnue")}
+          </p>
+
+          <div class="boss-drop-preview">
+            ${drops.map((drop) => `
+              ${getImageHTML(drop.image, drop.name)}
+            `).join("")}
+          </div>
+
+          <p class="card-domain">
+            ${drops.length} récompenses
+          </p>
+        </div>
+      </button>
+
+    </article>
+  `;
+}
+
+/* =====================================================
    AFFICHAGE DU CATALOGUE
-========================================= */
+===================================================== */
 
 function renderCatalog() {
   const grid = el("artifactGrid");
   if (!grid) return;
 
-  const search = normalizeText(state.search);
-
   let items = currentItems().filter((item) => {
-    const name = normalizeText(getName(item));
-
-    const bossName = normalizeText(item.bossName || "");
-    const location = normalizeText(item.bossLocation || "");
-
-    const matchesSearch =
-      !search ||
-      name.includes(search) ||
-      bossName.includes(search) ||
-      location.includes(search);
-
-    const matchesRarity =
-      state.rarity === "all" ||
-      String(getRarity(item)) === state.rarity;
-
-    return matchesSearch && matchesRarity;
+    return matchesSearch(item) && matchesRarity(item);
   });
 
-  grid.innerHTML = items.map((item) => {
-    const key = getKey(item);
-    const name = getName(item);
-    const image = getImage(item);
-    const rarity = getRarity(item);
-    const added = isInWishlist(item);
+  if (state.category === "bosses") {
+    grid.innerHTML = items
+      .map(renderBossCard)
+      .join("");
+  } else {
+    grid.innerHTML = items
+      .map(renderStandardCard)
+      .join("");
+  }
 
-    let subtitle = "";
+  setHidden(
+    el("emptyState"),
+    items.length !== 0
+  );
 
-    if (item.kind === "material") {
-      subtitle = item.family || item.region || "Matériau";
-    } else if (item.kind === "bossdrop") {
-      subtitle = `Récompense de ${item.bossName}`;
-    } else {
-      subtitle = getDomainLocation(item);
-    }
-
-    return `
-      <article class="artifact-card" data-key="${escapeHTML(key)}">
-        <button
-          class="card-main"
-          type="button"
-          data-action="details"
-          data-key="${escapeHTML(key)}"
-        >
-          <div class="card-image">
-            ${getImageHTML(image, name)}
-          </div>
-
-          <div class="card-info">
-            <h3>${escapeHTML(name)}</h3>
-            <p>${escapeHTML(subtitle)}</p>
-
-            <div class="rarity">
-              ${"★".repeat(Math.min(5, Math.max(1, rarity)))}
-            </div>
-          </div>
-        </button>
-
-        <button
-          class="wishlist-button ${added ? "active" : ""}"
-          type="button"
-          data-action="toggle"
-          data-key="${escapeHTML(key)}"
-          aria-label="${added ? "Retirer de" : "Ajouter à"} la liste"
-        >
-          ${added ? "✓" : "+"}
-        </button>
-      </article>
-    `;
-  }).join("");
-
-  const empty = el("emptyState");
-  setHidden(empty, items.length !== 0);
+  if (el("setCount")) {
+    el("setCount").textContent = items.length;
+  }
 
   updateCounts();
 }
 
-/* =========================================
-   AJOUT / SUPPRESSION DE LA WISHLIST
-========================================= */
+/* =====================================================
+   LISTE DE SOUHAITS
+===================================================== */
 
 function addWishlistItem(item) {
   const key = getKey(item);
@@ -599,20 +725,18 @@ function addWishlistItem(item) {
   }
 
   saveWishlist();
-  updateCounts();
   renderCatalog();
   renderPlanner();
 }
 
 function removeWishlistItem(key) {
   state.wishlist = state.wishlist.filter(
-    (itemKey) => itemKey !== key
+    (savedKey) => savedKey !== key
   );
 
   delete state.farmDays[key];
 
   saveWishlist();
-  updateCounts();
   renderCatalog();
   renderPlanner();
 }
@@ -632,14 +756,13 @@ function clearWishlist() {
   state.farmDays = {};
 
   saveWishlist();
-  updateCounts();
   renderCatalog();
   renderPlanner();
 }
 
-/* =========================================
+/* =====================================================
    PLANIFICATION DES JOURS
-========================================= */
+===================================================== */
 
 function setPlannerDay(key, day) {
   const item = findItem(key);
@@ -648,10 +771,27 @@ function setPlannerDay(key, day) {
   const currentDays = state.farmDays[key] || [];
   const alreadySelected = currentDays.includes(day);
 
-  /*
-   * Les récompenses d'un même boss sont déplacées ensemble.
-   */
-  if (item.kind === "bossdrop") {
+  if (item.kind === "material") {
+    // Les matériaux ne peuvent être planifiés
+    // que les jours où ils sont disponibles.
+    const availableDays = getAvailability(item);
+
+    if (
+      availableDays.length &&
+      !availableDays.includes(day)
+    ) {
+      return;
+    }
+
+    state.farmDays[key] = alreadySelected
+      ? currentDays.filter((value) => value !== day)
+      : [...currentDays, day];
+
+  } else if (item.kind === "bossdrop") {
+    /*
+     * Toutes les récompenses ajoutées d'un même boss
+     * sont déplacées ensemble.
+     */
     const bossKeys = state.wishlist.filter((wishlistKey) => {
       const wishlistItem = findItem(wishlistKey);
 
@@ -667,25 +807,20 @@ function setPlannerDay(key, day) {
     });
 
   } else {
-    const updatedDays = [...currentDays];
-
-    if (alreadySelected) {
-      state.farmDays[key] = updatedDays.filter(
-        (selectedDay) => selectedDay !== day
-      );
-    } else {
-      updatedDays.push(day);
-      state.farmDays[key] = updatedDays;
-    }
+    // Les artefacts peuvent être planifiés
+    // sur plusieurs jours.
+    state.farmDays[key] = alreadySelected
+      ? currentDays.filter((value) => value !== day)
+      : [...currentDays, day];
   }
 
   saveWishlist();
   renderPlanner();
 }
 
-/* =========================================
+/* =====================================================
    AFFICHAGE DU PLANIFICATEUR
-========================================= */
+===================================================== */
 
 function renderPlanner() {
   const planner = el("planner");
@@ -694,7 +829,7 @@ function renderPlanner() {
   if (!planner) return;
 
   const items = state.wishlist
-    .map((key) => findItem(key))
+    .map(findItem)
     .filter(Boolean);
 
   const isEmpty = items.length === 0;
@@ -708,103 +843,129 @@ function renderPlanner() {
     return;
   }
 
+  /* Liste des éléments */
+
   const choices = `
     <div class="planner-choices">
-      <h2>Mes éléments</h2>
+      <h2>Mes éléments sélectionnés</h2>
 
-      ${items.map((item) => {
-        const key = getKey(item);
-        const name = getName(item);
-        const image = getImage(item);
-        const selectedDays = state.farmDays[key] || [];
-        const availableDays = getAvailability(item);
+      <div class="planner-choice-list">
 
-        const subtitle = item.kind === "bossdrop"
-          ? `Récompense de ${item.bossName}`
-          : item.kind === "material"
-            ? (item.family || "Matériau")
-            : "Artefact";
+        ${items.map((item) => {
+          const key = getKey(item);
+          const name = getName(item);
+          const image = getImage(item);
 
-        return `
-          <article class="planner-choice">
-            <div class="planner-choice-info">
-              ${getImageHTML(image, name)}
+          const selectedDays = state.farmDays[key] || [];
+          const availableDays = getAvailability(item);
 
-              <div>
-                <h3>${escapeHTML(name)}</h3>
-                <p>${escapeHTML(subtitle)}</p>
+          const subtitle =
+            item.kind === "bossdrop"
+              ? `Récompense de ${item.bossName}`
+              : item.kind === "material"
+                ? (item.family || item.region || "Matériau")
+                : "Artéfact";
+
+          return `
+            <article class="planner-choice">
+
+              <div class="planner-choice-info">
+                ${getImageHTML(image, name)}
+
+                <div>
+                  <strong>${escapeHTML(name)}</strong>
+                  <small>${escapeHTML(subtitle)}</small>
+                </div>
               </div>
-            </div>
 
-            <div class="day-selector">
-              ${DAYS.map((day) => {
-                const selected = selectedDays.includes(day.id);
+              <div class="day-selector">
 
-                const disabled =
-                  item.kind === "material" &&
-                  availableDays.length > 0 &&
-                  !availableDays.includes(day.id);
+                ${DAYS.map((day) => {
+                  const selected =
+                    selectedDays.includes(day.id);
 
-                return `
-                  <button
-                    class="day-toggle ${selected ? "active" : ""}"
-                    type="button"
-                    data-action="day"
-                    data-key="${escapeHTML(key)}"
-                    data-day="${day.id}"
-                    ${disabled ? "disabled" : ""}
-                    title="${day.label}"
-                  >
-                    ${day.label.slice(0, 3)}
-                  </button>
-                `;
-              }).join("")}
-            </div>
+                  const disabled =
+                    item.kind === "material" &&
+                    availableDays.length > 0 &&
+                    !availableDays.includes(day.id);
 
-            <button
-              class="remove-item"
-              type="button"
-              data-action="remove"
-              data-key="${escapeHTML(key)}"
-              aria-label="Retirer ${escapeHTML(name)}"
-              title="Retirer cet élément"
-            >
-              ✕
-            </button>
-          </article>
-        `;
-      }).join("")}
+                  return `
+                    <button
+                      class="day-toggle ${selected ? "active" : ""}"
+                      type="button"
+                      data-action="day"
+                      data-key="${escapeHTML(key)}"
+                      data-day="${day.id}"
+                      ${disabled ? "disabled" : ""}
+                      title="${day.label}"
+                    >
+                      ${day.label.slice(0, 3)}
+                    </button>
+                  `;
+                }).join("")}
+
+              </div>
+
+              <button
+                class="remove-item"
+                type="button"
+                data-action="remove"
+                data-key="${escapeHTML(key)}"
+                aria-label="Retirer ${escapeHTML(name)}"
+                title="Retirer cet élément"
+              >
+                ✕
+              </button>
+
+            </article>
+          `;
+        }).join("")}
+
+      </div>
     </div>
   `;
+
+  /* Planning de la semaine */
 
   const week = `
     <div class="planner-week">
       <h2>Mon planning de farm</h2>
 
       <div class="planner-week-grid">
+
         ${DAYS.map((day) => {
           const dayItems = items.filter((item) => {
             const key = getKey(item);
-            return (state.farmDays[key] || []).includes(day.id);
+
+            return (
+              state.farmDays[key] || []
+            ).includes(day.id);
           });
 
           return `
-            <section class="planner-day">
+            <section class="day-column">
+
               <h3>${day.label}</h3>
 
-              ${
-                dayItems.length
-                  ? dayItems.map((item) => `
-                      <div class="planner-item">
-                        ${getImageHTML(getImage(item), getName(item))}
-                        <span>${escapeHTML(getName(item))}</span>
-                      </div>
-                    `).join("")
-                  : `<p class="no-farm">Rien de prévu</p>`
-              }
+              <div class="day-items">
+
+                ${
+                  dayItems.length
+                    ? dayItems.map((item) => `
+                        <div class="planner-item">
+                          ${getImageHTML(getImage(item), getName(item))}
+                          <span>${escapeHTML(getName(item))}</span>
+                        </div>
+                      `).join("")
+                    : `<p class="no-farm">Rien de prévu</p>`
+                }
+
+              </div>
+
             </section>
           `;
         }).join("")}
+
       </div>
     </div>
   `;
@@ -812,27 +973,11 @@ function renderPlanner() {
   planner.innerHTML = choices + week;
 
   updateCounts();
-  updatePlannerSummary();
 }
 
-function updatePlannerSummary() {
-  const summary = el("plannerSummary");
-  if (!summary) return;
-
-  const total = state.wishlist.length;
-
-  const planned = state.wishlist.filter((key) => {
-    return (state.farmDays[key] || []).length > 0;
-  }).length;
-
-  summary.textContent =
-    `${total} élément${total > 1 ? "s" : ""} dans ta liste · ` +
-    `${planned} planifié${planned > 1 ? "s" : ""}`;
-}
-
-/* =========================================
+/* =====================================================
    COMPTEURS
-========================================= */
+===================================================== */
 
 function updateCounts() {
   const count = state.wishlist.length;
@@ -845,12 +990,212 @@ function updateCounts() {
     el("wishlistCount2").textContent = count;
   }
 
-  updatePlannerSummary();
+  const summary = el("plannerSummary");
+
+  if (summary) {
+    const planned = state.wishlist.filter((key) => {
+      return (state.farmDays[key] || []).length > 0;
+    }).length;
+
+    summary.textContent =
+      `${count} élément${count > 1 ? "s" : ""} sélectionné${count > 1 ? "s" : ""} · ` +
+      `${planned} planifié${planned > 1 ? "s" : ""}`;
+  }
 }
 
-/* =========================================
-   FENÊTRE DE DÉTAILS
-========================================= */
+/* =====================================================
+   DÉTAILS DES ARTEFACTS ET MATÉRIAUX
+===================================================== */
+
+function renderArtifactDetails(item) {
+  const pieces = getPieces(item);
+
+  const piecesHTML = pieces.length
+    ? `
+      <div class="bonus-block">
+        <h3>Pièces de l'ensemble</h3>
+
+        <div class="pieces-grid">
+          ${pieces.map((piece) => {
+            const name =
+              piece.data.name ||
+              piece.data.Name ||
+              piece.label;
+
+            const image =
+              piece.data.img ||
+              piece.data.image ||
+              "";
+
+            return `
+              <div class="piece-item">
+                ${getImageHTML(image, name)}
+                <span>${escapeHTML(name)}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `
+    : "";
+
+  const twoPieceBonus =
+    item["2pc"] ||
+    item.two_piece_bonus ||
+    item.twoPieceBonus ||
+    item.bonus_2 ||
+    "";
+
+  const fourPieceBonus =
+    item["4pc"] ||
+    item.four_piece_bonus ||
+    item.fourPieceBonus ||
+    item.bonus_4 ||
+    "";
+
+  const bonusHTML = `
+    ${twoPieceBonus ? `
+      <div class="bonus-block">
+        <h3>Bonus 2 pièces</h3>
+        <p>${escapeHTML(twoPieceBonus)}</p>
+      </div>
+    ` : ""}
+
+    ${fourPieceBonus ? `
+      <div class="bonus-block">
+        <h3>Bonus 4 pièces</h3>
+        <p>${escapeHTML(fourPieceBonus)}</p>
+      </div>
+    ` : ""}
+  `;
+
+  return piecesHTML + bonusHTML;
+}
+
+function renderMaterialDetails(item) {
+  const days = getAvailability(item);
+
+  return `
+    <div class="bonus-block">
+      <h3>Informations</h3>
+
+      <p>
+        Région : ${escapeHTML(item.region || "Non renseignée")}
+      </p>
+
+      <p>
+        Famille : ${escapeHTML(item.family || "Non renseignée")}
+      </p>
+    </div>
+
+    <div class="bonus-block">
+      <h3>Jours de disponibilité</h3>
+
+      <p>
+        ${
+          days.length
+            ? days.map((day) => {
+                const label = DAYS.find(
+                  (entry) => entry.id === day
+                )?.label || day;
+
+                return escapeHTML(label);
+              }).join(", ")
+            : "Disponibilité non renseignée"
+        }
+      </p>
+    </div>
+  `;
+}
+
+/* =====================================================
+   DÉTAILS DES BOSS
+===================================================== */
+
+function openBossDetails(boss) {
+  if (!boss) return;
+
+  const dialog = el("detailDialog");
+  const content = el("detailContent");
+
+  if (!dialog || !content) return;
+
+  const drops = state.bossDrops.filter(
+    (drop) => drop.bossId === boss.id
+  );
+
+  content.innerHTML = `
+    <div class="boss-detail-head">
+
+      <div class="boss-large-image">
+        ${getImageHTML(boss.image, boss.name)}
+      </div>
+
+      <div>
+        <p class="eyebrow">BOSS HEBDOMADAIRE</p>
+
+        <h2>${escapeHTML(boss.name)}</h2>
+
+        <p>${escapeHTML(boss.location || "")}</p>
+      </div>
+
+    </div>
+
+    <div class="bonus-block">
+      <h3>Récompenses possibles</h3>
+
+      <div class="boss-drop-list">
+
+        ${drops.map((drop) => {
+          const added = isInWishlist(drop);
+          const key = getKey(drop);
+
+          return `
+            <div class="boss-drop-row">
+
+              <div class="boss-drop-copy">
+                ${getImageHTML(drop.image, drop.name)}
+
+                <div>
+                  <strong>${escapeHTML(drop.name)}</strong>
+
+                  <p class="boss-probability">
+                    ${escapeHTML(
+                      drop.probability || "Probabilité non renseignée"
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                class="button ${added ? "button-quiet" : ""}"
+                type="button"
+                data-action="boss-drop-toggle"
+                data-key="${escapeHTML(key)}"
+              >
+                ${added ? "Retirer" : "Ajouter"}
+              </button>
+
+            </div>
+          `;
+        }).join("")}
+
+      </div>
+    </div>
+  `;
+
+  state.selected = boss;
+
+  if (typeof dialog.showModal === "function") {
+    if (!dialog.open) dialog.showModal();
+  } else {
+    dialog.setAttribute("open", "");
+  }
+}
+
+/* =====================================================
+   OUVERTURE DES DÉTAILS
+===================================================== */
 
 function openDetails(item) {
   if (!item) return;
@@ -862,7 +1207,6 @@ function openDetails(item) {
 
   if (!dialog || !content) return;
 
-  const key = getKey(item);
   const name = getName(item);
   const image = getImage(item);
   const rarity = getRarity(item);
@@ -871,75 +1215,43 @@ function openDetails(item) {
   let extra = "";
 
   if (item.kind === "artifact") {
-    const pieces = getPieces(item);
-
-    if (pieces.length) {
-      extra = `
-        <div class="detail-pieces">
-          <h3>Pièces du set</h3>
-
-          <div class="pieces-grid">
-            ${pieces.map((piece) => {
-              const pieceName =
-                piece.data.name ||
-                piece.data.Name ||
-                piece.label;
-
-              const pieceImage =
-                piece.data.img ||
-                piece.data.image ||
-                "";
-
-              return `
-                <div class="piece-item">
-                  ${getImageHTML(pieceImage, pieceName)}
-                  <span>${escapeHTML(pieceName)}</span>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      `;
-    }
+    extra = renderArtifactDetails(item);
   }
 
   if (item.kind === "material") {
-    const days = getAvailability(item);
-
-    extra = `
-      <div class="detail-availability">
-        <h3>Jours de disponibilité</h3>
-        <p>${days.length
-          ? days.map((day) => escapeHTML(day)).join(", ")
-          : "Disponibilité non renseignée"
-        }</p>
-      </div>
-    `;
+    extra = renderMaterialDetails(item);
   }
 
   if (item.kind === "bossdrop") {
     extra = `
-      <div class="detail-boss">
+      <div class="bonus-block">
         <h3>${escapeHTML(item.bossName)}</h3>
+
         <p>${escapeHTML(item.bossLocation || "")}</p>
-        <p>${escapeHTML(item.probability || "")}</p>
+
+        <p class="boss-probability">
+          ${escapeHTML(item.probability || "")}
+        </p>
       </div>
     `;
   }
 
   content.innerHTML = `
-    <div class="detail-main">
+    <div class="detail-head">
+
       <div class="detail-image">
         ${getImageHTML(image, name)}
       </div>
 
-      <div class="detail-info">
+      <div>
         <p class="eyebrow">
-          ${item.kind === "artifact"
-            ? "ARTEFACT"
-            : item.kind === "material"
-              ? "MATÉRIAU"
-              : "BOSS HEBDOMADAIRE"}
+          ${
+            item.kind === "artifact"
+              ? "ARTÉFACT"
+              : item.kind === "material"
+                ? "MATÉRIAU"
+                : "RÉCOMPENSE DE BOSS"
+          }
         </p>
 
         <h2>${escapeHTML(name)}</h2>
@@ -948,21 +1260,29 @@ function openDetails(item) {
           ${"★".repeat(Math.min(5, Math.max(1, rarity)))}
         </div>
 
-        ${renderDomainLocation(item)}
-
-        ${item.description
-          ? `<p>${escapeHTML(item.description)}</p>`
-          : ""}
+        ${getDomainHTML(item)}
       </div>
+
     </div>
+
+    ${
+      item.description
+        ? `
+          <div class="bonus-block">
+            <h3>Description</h3>
+            <p>${escapeHTML(item.description)}</p>
+          </div>
+        `
+        : ""
+    }
 
     ${extra}
 
     <button
       id="toggleWishlist"
-      class="primary-button"
+      class="button detail-action"
       type="button"
-      data-key="${escapeHTML(key)}"
+      data-key="${escapeHTML(getKey(item))}"
     >
       ${added ? "Retirer de ma liste" : "Ajouter à ma liste"}
     </button>
@@ -977,6 +1297,7 @@ function openDetails(item) {
 
 function closeDetails() {
   const dialog = el("detailDialog");
+
   if (!dialog) return;
 
   if (typeof dialog.close === "function" && dialog.open) {
@@ -988,60 +1309,43 @@ function closeDetails() {
   state.selected = null;
 }
 
-/* =========================================
-   ÉVÉNEMENTS
-========================================= */
+/* =====================================================
+   ÉVÉNEMENTS DU CATALOGUE
+===================================================== */
 
-// Navigation principale
-document.querySelectorAll(".tab").forEach((button) => {
-  button.addEventListener("click", () => {
-    setView(button.dataset.view);
-  });
-});
-
-// Catégories
-document.querySelectorAll(".category-tab").forEach((button) => {
-  button.addEventListener("click", () => {
-    setCategory(button.dataset.category);
-  });
-});
-
-// Recherche
-if (el("searchInput")) {
-  el("searchInput").addEventListener("input", (event) => {
-    state.search = event.target.value;
-    renderCatalog();
-  });
-}
-
-// Filtre de rareté
-if (el("rarityFilter")) {
-  el("rarityFilter").addEventListener("change", (event) => {
-    state.rarity = event.target.value;
-    renderCatalog();
-  });
-}
-
-// Clics dans le catalogue
 if (el("artifactGrid")) {
   el("artifactGrid").addEventListener("click", (event) => {
     const button = event.target.closest("[data-action]");
     if (!button) return;
 
+    const action = button.dataset.action;
+
+    if (action === "boss-details") {
+      const boss = state.bosses.find(
+        (entry) => String(entry.id) === button.dataset.boss
+      );
+
+      openBossDetails(boss);
+      return;
+    }
+
     const item = findItem(button.dataset.key);
     if (!item) return;
 
-    if (button.dataset.action === "details") {
+    if (action === "details") {
       openDetails(item);
     }
 
-    if (button.dataset.action === "toggle") {
+    if (action === "toggle") {
       toggleWishlist(item);
     }
   });
 }
 
-// Clics dans le planificateur
+/* =====================================================
+   ÉVÉNEMENTS DU PLANIFICATEUR
+===================================================== */
+
 if (el("planner")) {
   el("planner").addEventListener("click", (event) => {
     const button = event.target.closest("[data-action]");
@@ -1059,21 +1363,91 @@ if (el("planner")) {
   });
 }
 
-// Bouton retour au catalogue
+/* =====================================================
+   ÉVÉNEMENTS DE LA FENÊTRE DE DÉTAILS
+===================================================== */
+
+if (el("detailDialog")) {
+  el("detailDialog").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-action]");
+
+    if (button?.dataset.action === "boss-drop-toggle") {
+      const item = findItem(button.dataset.key);
+
+      if (item) {
+        toggleWishlist(item);
+        openBossDetails(state.selected);
+      }
+
+      return;
+    }
+
+    if (event.target === el("detailDialog")) {
+      closeDetails();
+      return;
+    }
+
+    if (button?.id === "toggleWishlist" && state.selected) {
+      const item = findItem(button.dataset.key);
+
+      if (item) {
+        toggleWishlist(item);
+        openDetails(item);
+      }
+    }
+  });
+}
+
+if (el("closeDialog")) {
+  el("closeDialog").addEventListener("click", closeDetails);
+}
+
+/* =====================================================
+   NAVIGATION ET FILTRES
+===================================================== */
+
+document.querySelectorAll(".tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    setView(button.dataset.view);
+  });
+});
+
+document.querySelectorAll(".category-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    setCategory(button.dataset.category);
+  });
+});
+
+if (el("searchInput")) {
+  el("searchInput").addEventListener("input", (event) => {
+    state.search = event.target.value;
+    renderCatalog();
+  });
+}
+
+if (el("rarityFilter")) {
+  el("rarityFilter").addEventListener("change", (event) => {
+    state.rarity = event.target.value;
+    renderCatalog();
+  });
+}
+
+/* =====================================================
+   BOUTONS DU PLANIFICATEUR
+===================================================== */
+
 if (el("backToCatalog")) {
   el("backToCatalog").addEventListener("click", () => {
     setView("catalogue");
   });
 }
 
-// Afficher la liste
 if (el("showWishlist")) {
   el("showWishlist").addEventListener("click", () => {
     setView("planif");
   });
 }
 
-// Tout supprimer
 if (el("clearWishlist")) {
   el("clearWishlist").addEventListener("click", () => {
     if (!state.wishlist.length) return;
@@ -1084,42 +1458,13 @@ if (el("clearWishlist")) {
   });
 }
 
-// Fermer les détails
-if (el("closeDialog")) {
-  el("closeDialog").addEventListener("click", closeDetails);
-}
-
-// Fermer en cliquant à l'extérieur de la fenêtre
-if (el("detailDialog")) {
-  el("detailDialog").addEventListener("click", (event) => {
-    if (event.target === el("detailDialog")) {
-      closeDetails();
-    }
-  });
-
-  el("detailDialog").addEventListener("click", (event) => {
-    const button = event.target.closest("#toggleWishlist");
-    if (!button || !state.selected) return;
-
-    toggleWishlist(state.selected);
-
-    const updatedItem = findItem(getKey(state.selected));
-    if (updatedItem) {
-      openDetails(updatedItem);
-    } else {
-      closeDetails();
-    }
-  });
-}
-
-/* =========================================
+/* =====================================================
    INITIALISATION
-========================================= */
+===================================================== */
 
 function init() {
   loadWishlist();
 
-  // Affiche immédiatement les bonnes vues.
   setHidden(el("catalogueView"), false);
   setHidden(el("planifView"), true);
   setHidden(el("planner"), true);
@@ -1128,7 +1473,6 @@ function init() {
   updateCounts();
   renderCatalog();
 
-  // Chargement des trois sources de données.
   loadArtifacts();
   loadMaterials();
   loadBosses();
