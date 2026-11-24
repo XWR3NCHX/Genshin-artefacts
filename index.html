@@ -4,109 +4,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#111827">
-  <meta name="description" content="Catalogue et planificateur de farm Genshin Impact">
-  <title>Teyvat — Catalogue et Planificateur</title>
-
+  <meta name="theme-color" content="#10131d">
+  <meta name="description" content="Teyvat - Catalogue de matériaux, artefacts et boss de Genshin Impact.">
+  <title>Teyvat — Genshin Impact</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
 
 <body>
-
-  <!-- EN-TÊTE -->
   <header class="site-header">
-    <div class="header-inner">
-
-      <a class="brand" href="#" aria-label="Accueil">
-        <span class="brand-mark">✦</span>
-        <span>
-          <strong>TEYVAT</strong>
-          <small>CATALOGUE & PLANIFICATEUR</small>
-        </span>
-      </a>
+    <div class="header-content">
+      <a href="#" class="logo">TEYVAT</a>
 
       <nav class="main-nav" aria-label="Navigation principale">
-        <button
-          class="tab active"
-          data-view="catalogue"
-          type="button"
-        >
+        <button class="tab active" data-view="catalogue" type="button">
           Catalogue
         </button>
 
-        <button
-          class="tab"
-          data-view="planif"
-          type="button"
-        >
+        <button class="tab" data-view="planif" type="button">
           Planificateur
-          <span id="wishlistCount" class="nav-count">0</span>
+          <span id="wishlistCount">0</span>
         </button>
       </nav>
-
     </div>
   </header>
 
-
-  <!-- CONTENU PRINCIPAL -->
-  <main class="page-shell">
-
-    <!-- BANNIÈRE -->
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">EXPLOREZ • COLLECTIONNEZ • PLANIFIEZ</p>
-
-        <h1>
-          Votre aventure à <span>Teyvat</span>
-        </h1>
-
-        <p>
-          Retrouvez vos artéfacts, matériaux et boss hebdomadaires,
-          puis organisez vos sessions de farm.
+  <main>
+    <!-- CATALOGUE -->
+    <section id="catalogueView">
+      <div class="page-heading">
+        <p class="eyebrow">GENSHIN IMPACT</p>
+        <h1 id="catalogueHeading">Catalogue</h1>
+        <p id="catalogueDescription">
+          Retrouve les artefacts, matériaux et récompenses de Teyvat.
         </p>
       </div>
 
-      <div class="hero-decoration" aria-hidden="true">
-        ✧
-      </div>
-    </section>
-
-
-    <!-- =========================
-         VUE CATALOGUE
-    ========================== -->
-    <section id="catalogueView">
-
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">VOTRE COLLECTION</p>
-
-          <h2 id="catalogueHeading">
-            Artéfacts
-          </h2>
-
-          <p id="catalogueDescription">
-            Découvrez les ensembles d'artéfacts disponibles.
-          </p>
-        </div>
-
-        <div class="stat-card">
-          <small>ÉLÉMENTS AFFICHÉS</small>
-          <span id="setCount">0</span>
-        </div>
-      </div>
-
-
-      <!-- CATÉGORIES -->
+      <!-- Catégories -->
       <div class="category-tabs" role="tablist" aria-label="Catégories">
-
         <button
           class="category-tab active"
           data-category="artifacts"
           type="button"
         >
-          Artéfacts
+          Artefacts
         </button>
 
         <button
@@ -124,28 +65,19 @@
         >
           Boss hebdomadaires
         </button>
-
       </div>
 
-
-      <!-- RECHERCHE ET FILTRES -->
+      <!-- Recherche et filtres -->
       <div class="catalogue-controls">
-
-        <label class="search-box">
-          <span aria-hidden="true">⌕</span>
-
-          <input
-            id="searchInput"
-            type="search"
-            placeholder="Rechercher un élément..."
-            autocomplete="off"
-          >
-        </label>
-
-        <select
-          id="rarityFilter"
-          aria-label="Filtrer par rareté"
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Rechercher..."
+          autocomplete="off"
+          aria-label="Rechercher dans le catalogue"
         >
+
+        <select id="rarityFilter" aria-label="Filtrer par rareté">
           <option value="all">Toutes les raretés</option>
           <option value="5">5 étoiles</option>
           <option value="4">4 étoiles</option>
@@ -153,163 +85,82 @@
           <option value="2">2 étoiles</option>
           <option value="1">1 étoile</option>
         </select>
-
       </div>
 
-
-      <!-- GRILLE UNIQUE POUR LES TROIS CATÉGORIES -->
+      <!-- Catalogue -->
       <div id="artifactGrid" class="artifact-grid"></div>
 
-
-      <!-- AUCUN RÉSULTAT -->
+      <!-- Aucun résultat -->
       <div id="emptyState" class="empty-state" hidden>
-        <span aria-hidden="true">✧</span>
+        <h2>Aucun résultat</h2>
+        <p>Aucun élément ne correspond à ta recherche.</p>
+      </div>
+    </section>
 
-        <h3>Aucun résultat</h3>
-
+    <!-- PLANIFICATEUR -->
+    <section id="planifView" hidden>
+      <div class="page-heading">
+        <p class="eyebrow">ORGANISATION</p>
+        <h1>Mon planificateur</h1>
         <p>
-          Essaie avec un autre nom ou modifie les filtres.
+          Organise tes sessions de farm et retrouve les éléments que tu as ajoutés.
         </p>
       </div>
 
-    </section>
-
-
-    <!-- =========================
-         VUE PLANIFICATEUR
-    ========================== -->
-    <section id="planifView" hidden>
-
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">ORGANISEZ VOTRE FARM</p>
-
-          <h2>Mon planificateur</h2>
-
-          <p>
-            Répartissez vos éléments à récupérer sur les jours
-            de la semaine.
-          </p>
-        </div>
-
-        <button
-          id="backToCatalog"
-          class="button button-quiet"
-          type="button"
-        >
+      <div class="planner-header">
+        <button id="backToCatalog" type="button">
           ← Retour au catalogue
         </button>
-      </div>
-
-
-      <!-- BARRE D'ACTIONS -->
-      <div class="planner-toolbar">
-
-        <div>
-          <strong>Ma liste de souhaits</strong>
-          <p id="plannerSummary">0 élément sélectionné</p>
-        </div>
 
         <div class="planner-actions">
-
-          <button
-            id="showWishlist"
-            class="button"
-            type="button"
-          >
-            Voir ma liste
+          <button id="showWishlist" type="button">
+            Ma liste
+            <span id="wishlistCount2">0</span>
           </button>
 
-          <button
-            id="clearWishlist"
-            class="button button-quiet"
-            type="button"
-          >
-            Tout effacer
+          <button id="clearWishlist" type="button">
+            Tout supprimer
           </button>
-
         </div>
-
       </div>
 
+      <div id="plannerSummary" class="planner-summary"></div>
 
-      <!-- PLANIFICATEUR VIDE -->
       <div id="plannerEmpty" class="empty-state">
-
-        <span aria-hidden="true">✧</span>
-
-        <h3>Ton planificateur est vide</h3>
-
+        <h2>Ta liste est vide</h2>
         <p>
-          Ajoute des artéfacts, matériaux ou drops de boss
-          depuis le catalogue.
+          Ajoute des artefacts, matériaux ou récompenses de boss depuis le catalogue.
         </p>
-
       </div>
 
-
-      <!-- PLANIFICATEUR REMPLI -->
-      <div id="planner" hidden>
-
-        <!-- Liste des éléments sélectionnés -->
-        <div class="planner-choices"></div>
-
-        <!-- Planning de la semaine -->
-        <div class="planner-week">
-
-          <div class="planner-week-grid"></div>
-
-        </div>
-
-      </div>
-
-      <!-- Compteur secondaire utilisé par le JavaScript -->
-      <span id="wishlistCount2" hidden>0</span>
-
+      <!-- Le JavaScript génère le contenu du planificateur ici -->
+      <div id="planner" hidden></div>
     </section>
-
   </main>
 
-
-  <!-- =========================
-       FENÊTRE DE DÉTAILS
-  ========================== -->
+  <!-- FENÊTRE DE DÉTAILS -->
   <dialog id="detailDialog" class="detail-dialog">
-
-    <div class="dialog-topbar">
-
-      <span class="eyebrow">
-        DÉTAILS
-      </span>
-
+    <div class="dialog-header">
       <button
         id="closeDialog"
-        class="dialog-close"
+        class="close-dialog"
         type="button"
         aria-label="Fermer"
       >
         ✕
       </button>
-
     </div>
 
     <div id="detailContent"></div>
-
   </dialog>
 
-
-  <!-- PIED DE PAGE -->
   <footer class="site-footer">
-
     <p>
-      Projet fan-made non officiel consacré à Genshin Impact.
+      Teyvat — Fan site non officiel dédié à Genshin Impact.
     </p>
-
     <p>
       Genshin Impact est une marque de HoYoverse.
     </p>
-
   </footer>
-
 </body>
 </html>
