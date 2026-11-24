@@ -1,166 +1,48 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#10131d">
-  <meta name="description" content="Teyvat - Catalogue de matériaux, artefacts et boss de Genshin Impact.">
-  <title>Teyvat — Genshin Impact</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17202b">
+  <meta name="description" content="Catalogue des artéfacts et livres d'aptitude de Genshin Impact avec planificateur de farm.">
+  <title>Genshin Impact — Artéfacts & matériaux d'aptitude</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
-
 <body>
   <header class="site-header">
-    <div class="header-content">
-      <a href="#" class="logo">TEYVAT</a>
-
-      <nav class="main-nav" aria-label="Navigation principale">
-        <button class="tab active" data-view="catalogue" type="button">
-          Catalogue
-        </button>
-
-        <button class="tab" data-view="planif" type="button">
-          Planificateur
-          <span id="wishlistCount">0</span>
-        </button>
-      </nav>
-    </div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><div><p class="eyebrow">GENSHIN IMPACT</p><h1>Bibliothèque de farm</h1></div></div>
+    <nav class="tabs" aria-label="Navigation principale">
+      <button class="tab active" data-view="catalogue" aria-current="page">Catalogue</button>
+      <button class="tab" data-view="planif">Planif <span id="wishlistCount" class="count">0</span></button>
+    </nav>
   </header>
-
   <main>
-    <!-- CATALOGUE -->
-    <section id="catalogueView">
-      <div class="page-heading">
-        <p class="eyebrow">GENSHIN IMPACT</p>
-        <h1 id="catalogueHeading">Catalogue</h1>
-        <p id="catalogueDescription">
-          Retrouve les artefacts, matériaux et récompenses de Teyvat.
-        </p>
+    <section id="catalogueView" class="view">
+      <div class="intro"><div><p class="eyebrow">TON GUIDE DE FARM</p><h2 id="catalogueHeading">Trouve ton prochain set</h2><p class="muted" id="catalogueDescription">Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de farm.</p></div><div class="stat-card"><span id="setCount">—</span><small>artéfacts chargés</small></div></div>
+      <div class="category-switch" role="group" aria-label="Type de catalogue">
+        <button class="category-tab active" data-category="artifacts" type="button">Artéfacts</button>
+        <button class="category-tab" data-category="materials" type="button">Matériaux d'aptitude</button>
       </div>
-
-      <!-- Catégories -->
-      <div class="category-tabs" role="tablist" aria-label="Catégories">
-        <button
-          class="category-tab active"
-          data-category="artifacts"
-          type="button"
-        >
-          Artefacts
-        </button>
-
-        <button
-          class="category-tab"
-          data-category="materials"
-          type="button"
-        >
-          Matériaux
-        </button>
-
-        <button
-          class="category-tab"
-          data-category="bosses"
-          type="button"
-        >
-          Boss hebdomadaires
-        </button>
+      <div class="toolbar">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Rechercher…" autocomplete="off"></label>
+        <label class="filter-label">Rareté<select id="rarityFilter"><option value="all">Toutes</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option></select></label>
+        <button id="showWishlist" class="button button-quiet">Voir ma liste <span id="wishlistCount2">0</span></button>
       </div>
-
-      <!-- Recherche et filtres -->
-      <div class="catalogue-controls">
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Rechercher..."
-          autocomplete="off"
-          aria-label="Rechercher dans le catalogue"
-        >
-
-        <select id="rarityFilter" aria-label="Filtrer par rareté">
-          <option value="all">Toutes les raretés</option>
-          <option value="5">5 étoiles</option>
-          <option value="4">4 étoiles</option>
-          <option value="3">3 étoiles</option>
-          <option value="2">2 étoiles</option>
-          <option value="1">1 étoile</option>
-        </select>
-      </div>
-
-      <!-- Catalogue -->
-      <div id="artifactGrid" class="artifact-grid"></div>
-
-      <!-- Aucun résultat -->
-      <div id="emptyState" class="empty-state" hidden>
-        <h2>Aucun résultat</h2>
-        <p>Aucun élément ne correspond à ta recherche.</p>
-      </div>
+      <p id="artifactStatus" class="status" role="status">Chargement des artéfacts…</p>
+      <p id="materialStatus" class="status" role="status">Chargement des livres d'aptitude…</p>
+      <div id="artifactGrid" class="artifact-grid" aria-live="polite"></div>
+      <div id="emptyState" class="empty-state hidden"><span>✧</span><h3>Aucun résultat</h3><p>Essaie un autre nom ou change le filtre.</p></div>
+      <p class="source-note">Les données et images sont chargées depuis des sources communautaires. Une connexion Internet est nécessaire pour afficher les images.</p>
     </section>
-
-    <!-- PLANIFICATEUR -->
-    <section id="planifView" hidden>
-      <div class="page-heading">
-        <p class="eyebrow">ORGANISATION</p>
-        <h1>Mon planificateur</h1>
-        <p>
-          Organise tes sessions de farm et retrouve les éléments que tu as ajoutés.
-        </p>
-      </div>
-
-      <div class="planner-header">
-        <button id="backToCatalog" type="button">
-          ← Retour au catalogue
-        </button>
-
-        <div class="planner-actions">
-          <button id="showWishlist" type="button">
-            Ma liste
-            <span id="wishlistCount2">0</span>
-          </button>
-
-          <button id="clearWishlist" type="button">
-            Tout supprimer
-          </button>
-        </div>
-      </div>
-
-      <div id="plannerSummary" class="planner-summary"></div>
-
-      <div id="plannerEmpty" class="empty-state">
-        <h2>Ta liste est vide</h2>
-        <p>
-          Ajoute des artefacts, matériaux ou récompenses de boss depuis le catalogue.
-        </p>
-      </div>
-
-      <!-- Le JavaScript génère le contenu du planificateur ici -->
-      <div id="planner" hidden></div>
+    <section id="planifView" class="view hidden">
+      <div class="intro"><div><p class="eyebrow">ORGANISATION HEBDOMADAIRE</p><h2>Ma planification</h2><p class="muted">Regroupe tes artéfacts et tes matériaux d'aptitude dans le même planning.</p></div></div>
+      <div class="planner-actions"><p id="plannerSummary" class="muted">Aucun élément dans ta liste.</p><button id="clearWishlist" class="button button-danger">Tout supprimer</button></div>
+      <div id="planner" class="planner-grid"></div>
+      <div id="plannerEmpty" class="empty-state"><span>♡</span><h3>Ta liste est vide</h3><p>Ajoute des artéfacts ou des livres d'aptitude depuis le catalogue.</p><button id="backToCatalog" class="button">Ouvrir le catalogue</button></div>
     </section>
   </main>
-
-  <!-- FENÊTRE DE DÉTAILS -->
-  <dialog id="detailDialog" class="detail-dialog">
-    <div class="dialog-header">
-      <button
-        id="closeDialog"
-        class="close-dialog"
-        type="button"
-        aria-label="Fermer"
-      >
-        ✕
-      </button>
-    </div>
-
-    <div id="detailContent"></div>
-  </dialog>
-
-  <footer class="site-footer">
-    <p>
-      Teyvat — Fan site non officiel dédié à Genshin Impact.
-    </p>
-    <p>
-      Genshin Impact est une marque de HoYoverse.
-    </p>
-  </footer>
+  <dialog id="detailDialog" class="detail-dialog" aria-labelledby="detailTitle"><button id="closeDialog" class="dialog-close" aria-label="Fermer">×</button><div id="detailContent"></div></dialog>
+  <footer><p>Projet fan-made non officiel. Genshin Impact appartient à HoYoverse.</p><p>Données communautaires, susceptibles d'être incomplètes selon la disponibilité des API.</p></footer>
 </body>
 </html>
