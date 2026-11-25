@@ -1,125 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teyvat — Farm Planner</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17202b">
+  <meta name="description" content="Catalogue des artéfacts et livres d'aptitude de Genshin Impact avec planificateur de farm.">
+  <title>Genshin Impact — Artéfacts & matériaux d'aptitude</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
 <body>
   <header class="site-header">
-    <div class="brand">
-      <span class="brand-icon">✦</span>
-      <div>
-        <h1>Teyvat</h1>
-        <p>Farm planner</p>
-      </div>
-    </div>
-
-    <nav class="tabs">
-      <button class="tab active" data-view="catalogue">
-        Catalogue
-      </button>
-      <button class="tab" data-view="planif">
-        Planning <span id="wishlistCount" class="count">0</span>
-      </button>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><div><p class="eyebrow">GENSHIN IMPACT</p><h1>Bibliothèque de farm</h1></div></div>
+    <nav class="tabs" aria-label="Navigation principale">
+      <button class="tab active" data-view="catalogue" aria-current="page">Catalogue</button>
+      <button class="tab" data-view="planif">Planif <span id="wishlistCount" class="count">0</span></button>
     </nav>
   </header>
-
   <main>
-    <section id="catalogueView" class="view active">
-      <section class="intro">
-        <p class="eyebrow">Genshin Impact</p>
-        <h2>Catalogue de farm</h2>
-        <p>Retrouve tes matériaux et prépare ta semaine.</p>
-      </section>
-
-      <div class="category-switch">
-        <button class="category-btn active" data-category="artifacts">
-          Artéfacts
-        </button>
-        <button class="category-btn" data-category="materials">
-          Livres d'aptitude
-        </button>
-        <button class="category-btn" data-category="bosses">
-          Boss hebdomadaires
-        </button>
+    <section id="catalogueView" class="view">
+      <div class="intro"><div><p class="eyebrow">TON GUIDE DE FARM</p><h2 id="catalogueHeading">Trouve ton prochain set</h2><p class="muted" id="catalogueDescription">Recherche un artéfact, consulte ses bonus et ajoute-le à ta liste de farm.</p></div><div class="stat-card"><span id="setCount">—</span><small>artéfacts chargés</small></div></div>
+      <div class="category-switch" role="group" aria-label="Type de catalogue">
+        <button class="category-tab active" data-category="artifacts" type="button">Artéfacts</button>
+        <button class="category-tab" data-category="materials" type="button">Matériaux d'aptitude</button>
       </div>
-
-      <div class="catalogue-toolbar">
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Rechercher..."
-        >
-
-        <select id="rarityFilter">
-          <option value="all">Toutes les raretés</option>
-          <option value="5">5 étoiles</option>
-          <option value="4">4 étoiles</option>
-          <option value="3">3 étoiles</option>
-          <option value="2">2 étoiles</option>
-          <option value="1">1 étoile</option>
-        </select>
-
-        <label class="wishlist-filter">
-          <input type="checkbox" id="showWishlist">
-          <span>Ma liste uniquement</span>
-        </label>
+      <div class="toolbar">
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Rechercher…" autocomplete="off"></label>
+        <label class="filter-label">Rareté<select id="rarityFilter"><option value="all">Toutes</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option></select></label>
+        <button id="showWishlist" class="button button-quiet">Voir ma liste <span id="wishlistCount2">0</span></button>
       </div>
-
-      <p id="artifactStatus" class="status"></p>
-      <p id="materialStatus" class="status"></p>
-      <p id="bossStatus" class="status"></p>
-
-      <div id="artifactGrid" class="catalogue-grid"></div>
-
-      <div id="emptyState" class="empty-state hidden">
-        <span>✦</span>
-        <h3>Aucun élément trouvé</h3>
-        <p>Essaie une autre recherche.</p>
-      </div>
+      <p id="artifactStatus" class="status" role="status">Chargement des artéfacts…</p>
+      <p id="materialStatus" class="status" role="status">Chargement des livres d'aptitude…</p>
+      <div id="artifactGrid" class="artifact-grid" aria-live="polite"></div>
+      <div id="emptyState" class="empty-state hidden"><span>✧</span><h3>Aucun résultat</h3><p>Essaie un autre nom ou change le filtre.</p></div>
+      <p class="source-note">Les données et images sont chargées depuis des sources communautaires. Une connexion Internet est nécessaire pour afficher les images.</p>
     </section>
-
-    <section id="planifView" class="view">
-      <section class="intro">
-        <p class="eyebrow">Organisation</p>
-        <h2>Mon planning</h2>
-        <p>Organise tes sessions de farm au fil de la semaine.</p>
-      </section>
-
-      <div class="planner-toolbar">
-        <div>
-          <span class="planner-label">Ma sélection</span>
-          <p id="plannerSummary">0 élément</p>
-        </div>
-
-        <button id="clearWishlist" class="danger-btn">
-          Tout supprimer
-        </button>
-      </div>
-
-      <div id="planner"></div>
-
-      <div id="plannerEmpty" class="empty-state hidden">
-        <span>✦</span>
-        <h3>Ton planning est vide</h3>
-        <p>Ajoute des éléments depuis le catalogue.</p>
-        <button id="backToCatalog" class="primary-btn">
-          Ouvrir le catalogue
-        </button>
-      </div>
+    <section id="planifView" class="view hidden">
+      <div class="intro"><div><p class="eyebrow">ORGANISATION HEBDOMADAIRE</p><h2>Ma planification</h2><p class="muted">Regroupe tes artéfacts et tes matériaux d'aptitude dans le même planning.</p></div></div>
+      <div class="planner-actions"><p id="plannerSummary" class="muted">Aucun élément dans ta liste.</p><button id="clearWishlist" class="button button-danger">Tout supprimer</button></div>
+      <div id="planner" class="planner-grid"></div>
+      <div id="plannerEmpty" class="empty-state"><span>♡</span><h3>Ta liste est vide</h3><p>Ajoute des artéfacts ou des livres d'aptitude depuis le catalogue.</p><button id="backToCatalog" class="button">Ouvrir le catalogue</button></div>
     </section>
   </main>
-
-  <dialog id="detailDialog">
-    <div id="detailContent"></div>
-    <button id="closeDialog" class="dialog-close">Fermer</button>
-  </dialog>
-
-  <footer>
-    <p>Fan-made planner • Genshin Impact</p>
-  </footer>
+  <dialog id="detailDialog" class="detail-dialog" aria-labelledby="detailTitle"><button id="closeDialog" class="dialog-close" aria-label="Fermer">×</button><div id="detailContent"></div></dialog>
+  <footer><p>Projet fan-made non officiel. Genshin Impact appartient à HoYoverse.</p><p>Données communautaires, susceptibles d'être incomplètes selon la disponibilité des API.</p></footer>
 </body>
 </html>
