@@ -23,6 +23,7 @@
       <div class="category-switch" role="group" aria-label="Type de catalogue">
         <button class="category-tab active" data-category="artifacts" type="button">Artéfacts</button>
         <button class="category-tab" data-category="materials" type="button">Matériaux d'aptitude</button>
+        <button class="category-tab" data-category="bosses" type="button">Boss hebdomadaires</button>
       </div>
       <div class="toolbar">
         <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Rechercher…" autocomplete="off"></label>
@@ -31,15 +32,16 @@
       </div>
       <p id="artifactStatus" class="status" role="status">Chargement des artéfacts…</p>
       <p id="materialStatus" class="status" role="status">Chargement des livres d'aptitude…</p>
+      <p id="bossStatus" class="status" role="status">Chargement des boss hebdomadaires…</p>
       <div id="artifactGrid" class="artifact-grid" aria-live="polite"></div>
       <div id="emptyState" class="empty-state hidden"><span>✧</span><h3>Aucun résultat</h3><p>Essaie un autre nom ou change le filtre.</p></div>
       <p class="source-note">Les données et images sont chargées depuis des sources communautaires. Une connexion Internet est nécessaire pour afficher les images.</p>
     </section>
     <section id="planifView" class="view hidden">
-      <div class="intro"><div><p class="eyebrow">ORGANISATION HEBDOMADAIRE</p><h2>Ma planification</h2><p class="muted">Regroupe tes artéfacts et tes matériaux d'aptitude dans le même planning.</p></div></div>
+      <div class="intro"><div><p class="eyebrow">ORGANISATION HEBDOMADAIRE</p><h2>Ma planification</h2><p class="muted">Regroupe tes artéfacts, matériaux d'aptitude et récompenses de boss dans ta liste.</p></div></div>
       <div class="planner-actions"><p id="plannerSummary" class="muted">Aucun élément dans ta liste.</p><button id="clearWishlist" class="button button-danger">Tout supprimer</button></div>
       <div id="planner" class="planner-grid"></div>
-      <div id="plannerEmpty" class="empty-state"><span>♡</span><h3>Ta liste est vide</h3><p>Ajoute des artéfacts ou des livres d'aptitude depuis le catalogue.</p><button id="backToCatalog" class="button">Ouvrir le catalogue</button></div>
+      <div id="plannerEmpty" class="empty-state"><span>♡</span><h3>Ta liste est vide</h3><p>Ajoute des artéfacts, des livres d'aptitude ou des récompenses de boss depuis le catalogue.</p><button id="backToCatalog" class="button">Ouvrir le catalogue</button></div>
     </section>
   </main>
   <dialog id="detailDialog" class="detail-dialog" aria-labelledby="detailTitle"><button id="closeDialog" class="dialog-close" aria-label="Fermer">×</button><div id="detailContent"></div></dialog>

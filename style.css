@@ -78,3 +78,29 @@
   .domain-location-meta { grid-template-columns: 1fr; }
   .domain-map-image { max-height: 240px; }
 }
+
+/* Boss hebdomadaires */
+.boss-card .artifact-art { min-height: 150px; }
+.boss-card .artifact-art img { max-height: 190px; object-fit: contain; }
+.boss-reward-count { color: var(--gold, #d6b36a); font-size: .82rem; margin-top: .45rem; }
+.boss-drop-details, .boss-drop-list { display: grid; gap: .75rem; margin-top: 1rem; }
+.boss-drop-detail, .boss-drop-row {
+  display: flex; align-items: center; gap: .85rem;
+  padding: .8rem; border: 1px solid var(--border, rgba(255,255,255,.1));
+  border-radius: 12px; background: rgba(255,255,255,.025);
+}
+.boss-drop-detail > img, .boss-drop-row > img {
+  width: 58px; height: 58px; object-fit: contain; flex: 0 0 58px;
+  border-radius: 9px; background: rgba(255,255,255,.04);
+}
+.boss-drop-copy, .boss-drop-row > div { flex: 1; min-width: 0; }
+.boss-drop-copy p { margin: .25rem 0 0; color: var(--muted, #aab3c0); font-size: .8rem; }
+.boss-drop-row .button { margin-left: auto; }
+.planner-boss-drops { margin-top: 1.5rem; }
+.planner-boss-drops h2 { margin-bottom: .85rem; }
+.boss-drop-row strong { display: block; }
+@media (max-width: 560px) {
+  .boss-drop-detail, .boss-drop-row { gap: .55rem; padding: .6rem; }
+  .boss-drop-detail > img, .boss-drop-row > img { width: 46px; height: 46px; flex-basis: 46px; }
+  .boss-drop-detail .button, .boss-drop-row .button { padding: .5rem .65rem; font-size: .78rem; }
+}
