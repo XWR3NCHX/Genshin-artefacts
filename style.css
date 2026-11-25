@@ -104,3 +104,15 @@
   .boss-drop-detail > img, .boss-drop-row > img { width: 46px; height: 46px; flex-basis: 46px; }
   .boss-drop-detail .button, .boss-drop-row .button { padding: .5rem .65rem; font-size: .78rem; }
 }
+
+
+/* Planning des boss hebdomadaires */
+.weekly-boss-notice{margin:0 0 18px;padding:11px 15px;border:1px solid #e4c27a66;border-radius:12px;background:#e4c27a12;color:var(--gold);font-size:.92rem;font-weight:700}
+.boss-day-selector{display:flex;flex-wrap:wrap;gap:7px}
+.planner-boss-item{padding:10px;text-align:left}
+.planner-boss-name{display:block;text-align:center;margin:2px 0 10px}
+.planner-boss-rewards{display:grid;gap:7px}
+.planner-boss-reward{position:relative;display:flex;align-items:center;gap:7px;padding:6px 22px 6px 5px;background:#ffffff08;border-radius:8px;min-width:0}
+.planner-boss-reward img,.planner-boss-reward .fallback{width:34px;height:34px;flex:0 0 34px;object-fit:contain}
+.planner-boss-reward span{font-size:.68rem;line-height:1.2;overflow-wrap:anywhere}
+.planner-boss-reward .remove-item{top:3px;right:3px}

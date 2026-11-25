@@ -170,17 +170,27 @@ function renderCatalog() {
  }).join("");
  el("emptyState").classList.toggle("hidden",items.length>0);
 }
+function getBossDayKey(boss) { return `boss-day:${boss.id}`; }
+function getWishedBossGroups(wishedDrops) {
+ const groups = new Map();
+ wishedDrops.forEach(({boss,drop}) => {
+   if (!groups.has(boss.id)) groups.set(boss.id, { boss, drops: [] });
+   groups.get(boss.id).drops.push(drop);
+ });
+ return [...groups.values()];
+}
 function renderPlanner() {
  const wished = [...state.wishlist].map(key => [...state.artifacts,...state.materials].find(x=>getKey(x)===key)).filter(Boolean);
  const wishedDrops = [...state.wishlist].map(key => findDrop(key)).filter(Boolean);
+ const bossGroups = getWishedBossGroups(wishedDrops);
  const total = wished.length + wishedDrops.length;
  el("plannerEmpty").classList.toggle("hidden", total>0);
  el("planner").classList.toggle("hidden", !total);
  if (!total) { el("planner").innerHTML=""; updateCounts(); return; }
  const choices = wished.length ? `<section class="planner-choices"><h2>Choisis tes jours de farm</h2><p>Tu peux sélectionner plusieurs jours pour chaque artéfact ou matériau. Les jours disponibles pour les livres d'aptitude sont rappelés sous leur nom.</p><div class="planner-choice-list">${wished.map(item=>{const key=getKey(item),selected=state.farmDays[key]||[],avail=getAvailability(item);return `<article class="planner-choice"><div class="planner-choice-info">${imageMarkup(getImage(item),item.name)}<div><strong>${escapeHtml(item.name)}</strong><p class="card-domain">${item.kind==="material"?(avail.length?`Disponible : ${avail.join(", ")}`:"Disponibilité non fournie par la source") : "Artéfact · domaine accessible tous les jours"}</p></div></div><div class="day-selector">${DAYS.map(day=>{const on=selected.includes(day);const allowed=item.kind!=="material" || avail.includes(day);return `<button type="button" class="day-toggle ${on?"selected":""}" data-day-toggle="${escapeHtml(key)}" data-day="${day}" aria-pressed="${on}" ${allowed?"":"disabled"} title="${allowed?`Disponible le ${day}`:`Indisponible le ${day} pour ce livre`}">${day}</button>`;}).join("")}</div></article>`;}).join("")}</div></section>` : "";
- const week = wished.length ? `<section class="planner-week"><h2>Mon planning de farm</h2><div class="planner-week-grid">${DAYS.map(day=>{const dayItems=wished.filter(x=>(state.farmDays[getKey(x)]||[]).includes(day));return `<section class="day-column"><h3>${day}</h3><div class="day-items">${dayItems.length?dayItems.map(item=>`<article class="planner-item"><button class="remove-item" data-remove="${escapeHtml(getKey(item))}" aria-label="Retirer ${escapeHtml(item.name)}">×</button>${imageMarkup(getImage(item),item.name)}<strong>${escapeHtml(item.name)}</strong></article>`).join(""):`<p class="no-farm">Rien de prévu</p>`}</div></section>`;}).join("")}</div></section>` : "";
- const drops = wishedDrops.length ? `<section class="planner-boss-drops"><h2>Récompenses de boss dans ma liste</h2><div class="boss-drop-list">${wishedDrops.map(({boss,drop})=>`<article class="boss-drop-row">${imageMarkup(drop.image,drop.name)}<div><strong>${escapeHtml(drop.name)}</strong><p class="card-domain">${escapeHtml(boss.name)}</p></div><button class="button button-quiet" data-remove="${escapeHtml(getDropKey(drop))}">Retirer</button></article>`).join("")}</div></section>` : "";
- el("planner").innerHTML=choices+week+drops; updateCounts();
+ const bossChoices = bossGroups.length ? `<section class="planner-choices boss-planner-choices"><h2>Planifier mes boss hebdomadaires</h2><p>Choisis un seul jour par boss. Toutes les récompenses de ce boss seront regroupées ce jour-là.</p><div class="planner-choice-list">${bossGroups.map(({boss,drops})=>{const key=getBossDayKey(boss),selected=(state.farmDays[key]||[])[0]||"";return `<article class="planner-choice"><div class="planner-choice-info">${imageMarkup(boss.image,boss.name)}<div><strong>${escapeHtml(boss.name)}</strong><p class="card-domain">${drops.length} récompense${drops.length>1?"s":""} dans ta liste · ${escapeHtml(boss.location)}</p></div></div><div class="boss-day-selector">${DAYS.map(day=>`<button type="button" class="day-toggle ${selected===day?"selected":""}" data-boss-day="${escapeHtml(key)}" data-day="${day}" aria-pressed="${selected===day}">${day}</button>`).join("")}</div></article>`;}).join("")}</div></section>` : "";
+ const week = (wished.length || bossGroups.length) ? `<section class="planner-week"><h2>Mon planning de farm</h2><div class="planner-week-grid">${DAYS.map(day=>{const dayItems=wished.filter(x=>(state.farmDays[getKey(x)]||[]).includes(day));const dayBosses=bossGroups.filter(({boss})=>(state.farmDays[getBossDayKey(boss)]||[]).includes(day));return `<section class="day-column"><h3>${day}</h3><div class="day-items">${dayItems.map(item=>`<article class="planner-item"><button class="remove-item" data-remove="${escapeHtml(getKey(item))}" aria-label="Retirer ${escapeHtml(item.name)}">×</button>${imageMarkup(getImage(item),item.name)}<strong>${escapeHtml(item.name)}</strong></article>`).join("")}${dayBosses.map(({boss,drops})=>`<article class="planner-item planner-boss-item"><strong class="planner-boss-name">${escapeHtml(boss.name)}</strong><div class="planner-boss-rewards">${drops.map(drop=>`<div class="planner-boss-reward">${imageMarkup(drop.image,drop.name)}<span>${escapeHtml(drop.name)}</span><button class="remove-item" data-remove="${escapeHtml(getDropKey(drop))}" aria-label="Retirer ${escapeHtml(drop.name)}">×</button></div>`).join("")}</div></article>`).join("")}${!dayItems.length&&!dayBosses.length?`<p class="no-farm">Rien de prévu</p>`:""}</div></section>`;}).join("")}</div></section>` : "";
+ el("planner").innerHTML=choices+bossChoices+week; updateCounts();
 }
 function openBossDetails(id) {
  const boss=state.bosses.find(x=>x.id===id); if(!boss)return;
@@ -222,12 +232,26 @@ el("artifactGrid").addEventListener("click",e=>{
 el("detailContent").addEventListener("click",e=>{
  const btn=e.target.closest("[data-toggle-drop]"); if(!btn)return;
  const key=btn.dataset.toggleDrop;
- if(state.wishlist.has(key)) state.wishlist.delete(key); else state.wishlist.add(key);
- saveWishlist(); renderCatalog(); renderPlanner();
  const boss=state.bosses.find(b=>(b.drops||[]).some(d=>getDropKey(d)===key));
+ if(state.wishlist.has(key)) {
+   state.wishlist.delete(key);
+   const remaining=[...state.wishlist].map(k=>findDrop(k)).filter(x=>x&&x.boss.id===boss?.id);
+   if(!remaining.length&&boss) delete state.farmDays[getBossDayKey(boss)];
+ } else {
+   state.wishlist.add(key);
+   if(boss&&!(state.farmDays[getBossDayKey(boss)]||[]).length) state.farmDays[getBossDayKey(boss)]=["Lundi"];
+ }
+ saveWishlist(); saveFarmDays(); renderCatalog(); renderPlanner();
  if(boss) openBossDetails(boss.id);
 });
-el("planner").addEventListener("click",e=>{const day=e.target.closest("[data-day-toggle]");if(day){if(day.disabled)return;const k=day.dataset.dayToggle,d=day.dataset.day;state.farmDays[k] ||= [];state.farmDays[k]=state.farmDays[k].includes(d)?state.farmDays[k].filter(x=>x!==d):[...state.farmDays[k],d];saveFarmDays();renderPlanner();return;}const remove=e.target.closest("[data-remove]");if(remove){state.wishlist.delete(remove.dataset.remove);delete state.farmDays[remove.dataset.remove];saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}});
+el("planner").addEventListener("click",e=>{
+ const bossDay=e.target.closest("[data-boss-day]");
+ if(bossDay){const key=bossDay.dataset.bossDay,day=bossDay.dataset.day;state.farmDays[key]=[day];saveFarmDays();renderPlanner();return;}
+ const day=e.target.closest("[data-day-toggle]");
+ if(day){if(day.disabled)return;const k=day.dataset.dayToggle,d=day.dataset.day;state.farmDays[k] ||= [];state.farmDays[k]=state.farmDays[k].includes(d)?state.farmDays[k].filter(x=>x!==d):[...state.farmDays[k],d];saveFarmDays();renderPlanner();return;}
+ const remove=e.target.closest("[data-remove]");
+ if(remove){const key=remove.dataset.remove,drop=findDrop(key);state.wishlist.delete(key);delete state.farmDays[key];if(drop){const remaining=[...state.wishlist].map(k=>findDrop(k)).filter(x=>x&&x.boss.id===drop.boss.id);if(!remaining.length)delete state.farmDays[getBossDayKey(drop.boss)];}saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}
+});
 el("clearWishlist").addEventListener("click",()=>{if(state.wishlist.size&&confirm("Supprimer tous les éléments de ta liste ?")){state.wishlist.clear();state.farmDays={};saveWishlist();saveFarmDays();renderCatalog();renderPlanner();}});
 el("closeDialog").addEventListener("click",()=>el("detailDialog").close());el("detailDialog").addEventListener("click",e=>{if(e.target===el("detailDialog"))el("detailDialog").close();});
 loadWishlist();updateCounts();loadArtifacts();loadMaterials();loadBosses();
