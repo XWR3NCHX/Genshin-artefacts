@@ -214,15 +214,15 @@
     "image": "image/bosses/narval.png",
     "drops": [
       {
-        "id": "narval-corail",
-        "name": "Corail primordial",
-        "image": "image/boss-drops/corail-primordial.png",
+        "id": "narval-cordon",
+        "name": "Cordon de soie sans lumière",
+        "image": "image/boss-drops/Cordon-de-soie-sans-lumière.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       },
       {
-        "id": "narval-fragment",
-        "name": "Fragment d'une mélodie dorée",
-        "image": "image/boss-drops/fragment-melodie-doree.png",
+        "id": "narval-oeil",
+        "name": "L'oeil sans lumière du Maelstrom",
+        "image": "image/boss-drops/oeil-sans-lumière-du-Maelstrom.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       },
       {
@@ -240,21 +240,21 @@
     "image": "image/bosses/arlecchino.png",
     "drops": [
       {
+        "id": "arlecchino-bougie",
+        "name": "Bougie vacillante",
+        "image": "image/boss-drops/Bougie-vacillante.png",
+        "probability": "Récompense possible (probabilité non officiellement publiée)"
+      },
+      {
         "id": "arlecchino-plume",
-        "name": "Plume de la légion",
-        "image": "image/boss-drops/plume-legion.png",
+        "name": "Plume soyeuse",
+        "image": "image/boss-drops/Plume-soyeuse.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       },
       {
-        "id": "arlecchino-soie",
-        "name": "Soie de la légion",
-        "image": "image/boss-drops/soie-legion.png",
-        "probability": "Récompense possible (probabilité non officiellement publiée)"
-      },
-      {
-        "id": "arlecchino-fleur",
-        "name": "Fleur de la légion",
-        "image": "image/boss-drops/fleur-legion.png",
+        "id": "arlecchino-verdict",
+        "name": "Verdict négatif",
+        "image": "image/boss-drops/Verdict-négatif.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       }
     ]
