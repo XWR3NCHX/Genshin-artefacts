@@ -7,19 +7,19 @@
     "drops": [
       {
         "id": "dvalin-plume",
-        "name": "Plume de Dvalin",
+        "name": "Plume de Stormterror",
         "image": "image/boss-drops/plume-dvalin.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       },
       {
         "id": "dvalin-soupir",
-        "name": "Soupir de Dvalin",
+        "name": "Souffle de Stormterror",
         "image": "image/boss-drops/soupir-dvalin.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       },
       {
         "id": "dvalin-griffe",
-        "name": "Griffe de Dvalin",
+        "name": "Griffe de Stormterror",
         "image": "image/boss-drops/griffe-dvalin.png",
         "probability": "Récompense possible (probabilité non officiellement publiée)"
       }
